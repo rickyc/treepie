@@ -13,6 +13,8 @@
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
 
+#define STRAIGHT_AHEAD 0
+
 // speed of the robot
 int speed = 100;
 // if =1 run the robot, if =0 stop
@@ -83,6 +85,18 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 // return line position
 // YOU MUST WRITE THIS.
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+	int i;
+	//int sum = STRAIGHT_AHEAD;
+	
+	if (s[0] < s[3]) 
+		return -50;
+	else if (s[0] > s[3])
+		return 50;
+	
+	/*for (i=0;i<5;i++) {
+		
+	}*/
+
 	return 0;
 }
 
