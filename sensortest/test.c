@@ -85,18 +85,15 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 // Return line position
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int i;
-	int position = 2500;
 	long sum = 0;
 	int adjust[5] = {-2,-1,0,1,2};
 
 	for(i=0;i<5;i++) {
 		if (i == 2) continue;
-		sum += (s[i]-minv[i])/(maxv[i]-minv[i]) * adjust[i];
+		sum += ((s[i]-minv[i])*2000)/(maxv[i]-minv[i]) * adjust[i];
 	}
-	// -3 = 0
-	// 0 = 2000
-	// 3 = 4000
-	return 2000 + sum*2000/3;
+	//value:return_value -3:0, 0:2000, 3:4000
+	return 2000 + sum/3;
 }
 
 // Make a little dance: Turn left and right
