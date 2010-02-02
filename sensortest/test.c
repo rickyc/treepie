@@ -1,8 +1,8 @@
 /*
-  3PI template code for NYU "Intro to Robotics" course.
-  Yann LeCun, 02/2009.
-  This program was modified from an example program from Pololu. 
- */
+	 3PI template code for NYU "Intro to Robotics" course.
+	 Yann LeCun, 02/2009.
+	 This program was modified from an example program from Pololu. 
+	 */
 
 // The 3pi include file must be at the beginning of any program that
 // uses the Pololu AVR library and 3pi.
@@ -86,13 +86,17 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int i;
 	int position = 2500;
-	int sum = 0;
-//  2500    0 5000
-//	x/s = min/max
-	for(i=0;i<5;i++)
-		sum = s[i]/(maxv[i]-minv[i])*1000;
+	long sum = 0;
+	int[] adjust = {-2,-1,0,1,2};
 
-	return sum/5;
+	for(i=0;i<5;i++) {
+		if (i == 2) continue;
+		sum += (s[i]-minv[i])/(maxv[i]-minv[i]) * adjust[i];
+	}
+	// -3 = 0
+	// 0 = 2000
+	// 3 = 4000
+	return 2000 + sum*2000/3;
 }
 
 // Make a little dance: Turn left and right
@@ -114,15 +118,15 @@ void dance() {
 // plays the initial music.
 void initialize()
 {
-  // This must be called at the beginning of 3pi code, to set up the
-  // sensors.  We use a value of 2000 for the timeout, which
-  // corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
-  pololu_3pi_init(2000);
-  load_custom_characters(); // load the custom characters
-  // display message
-  print_from_program_space(hello);
-  lcd_goto_xy(0,1);
-  print("Press B");
+	// This must be called at the beginning of 3pi code, to set up the
+	// sensors.  We use a value of 2000 for the timeout, which
+	// corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
+	pololu_3pi_init(2000);
+	load_custom_characters(); // load the custom characters
+	// display message
+	print_from_program_space(hello);
+	lcd_goto_xy(0,1);
+	print("Press B");
 
 }
 
@@ -130,77 +134,77 @@ void initialize()
 // must have a main() function defined somewhere.
 int main()
 {
-  // global array to hold sensor values
-  unsigned int sensors[5]; 
-  // global arrays to hold min and max sensor values
-  // for calibration
-  unsigned int minv[5], maxv[5]; 
-  // line position relative to center
-  int position = 0;
-  
-  int i;
+	// global array to hold sensor values
+	unsigned int sensors[5]; 
+	// global arrays to hold min and max sensor values
+	// for calibration
+	unsigned int minv[5], maxv[5]; 
+	// line position relative to center
+	int position = 0;
 
-  // set up the 3pi, and wait for B button to be pressed
-  initialize();
-  
-  read_line_sensors(sensors,IR_EMITTERS_ON);
-  for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
+	int i;
 
-  // Display calibrated sensor values as a bar graph.
-  while(1) {
-    if (button_is_pressed(BUTTON_B)) { run = 1-run; delay(200); }
-    if (button_is_pressed(BUTTON_A)) { speed -= 10; delay(100); }
-    if (button_is_pressed(BUTTON_C)) { speed += 10; delay(100); }
-    
-    // Read the line sensor values
-    read_line_sensors(sensors,IR_EMITTERS_ON);
-    // update minv and mav values,
-    // and put normalized values in v
-    update_bounds(sensors,minv,maxv);
+	// set up the 3pi, and wait for B button to be pressed
+	initialize();
 
-    // compute line positon
-    position = line_position(sensors,minv,maxv);
+	read_line_sensors(sensors,IR_EMITTERS_ON);
+	for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
 
-	
-	// pulled from 3pi-linefollwer
-	if(position < 1000)
-	{
-		// We are far to the right of the line: turn left.
+	// Display calibrated sensor values as a bar graph.
+	while(1) {
+		if (button_is_pressed(BUTTON_B)) { run = 1-run; delay(200); }
+		if (button_is_pressed(BUTTON_A)) { speed -= 10; delay(100); }
+		if (button_is_pressed(BUTTON_C)) { speed += 10; delay(100); }
 
-		// Set the right motor to 100 and the left motor to zero,
-		// to do a sharp turn to the left.  Note that the maximum
-		// value of either motor speed is 255, so we are driving
-		// it at just about 40% of the max.
-		set_motors(0,100);
+		// Read the line sensor values
+		read_line_sensors(sensors,IR_EMITTERS_ON);
+		// update minv and mav values,
+		// and put normalized values in v
+		update_bounds(sensors,minv,maxv);
 
-		// Just for fun, indicate the direction we are turning on
-		// the LEDs.
-		left_led(1);
-		right_led(0);
+		// compute line positon
+		position = line_position(sensors,minv,maxv);
+
+
+		// pulled from 3pi-linefollwer
+		if(position < 1000)
+		{
+			// We are far to the right of the line: turn left.
+
+			// Set the right motor to 100 and the left motor to zero,
+			// to do a sharp turn to the left.  Note that the maximum
+			// value of either motor speed is 255, so we are driving
+			// it at just about 40% of the max.
+			set_motors(0,100);
+
+			// Just for fun, indicate the direction we are turning on
+			// the LEDs.
+			left_led(1);
+			right_led(0);
+		}
+		else if(position < 3000)
+		{
+			// We are somewhat close to being centered on the line:
+			// drive straight.
+			set_motors(100,100);
+			left_led(1);
+			right_led(1);
+		}
+		else
+		{
+			// We are far to the left of the line: turn right.
+			set_motors(100,0);
+			left_led(0);
+			right_led(1);
+		}
+
+		// display bargraph
+		clear();
+		print_long(position);
+		lcd_goto_xy(0,1);
+		// for (i=0; i<8; i++) { print_character(display_characters[i]); }
+		display_bars(sensors,minv,maxv);
+
+		delay_ms(10);
 	}
-	else if(position < 3000)
-	{
-		// We are somewhat close to being centered on the line:
-		// drive straight.
-		set_motors(100,100);
-		left_led(1);
-		right_led(1);
-	}
-	else
-	{
-		// We are far to the left of the line: turn right.
-		set_motors(100,0);
-		left_led(0);
-		right_led(1);
-	}
-
-    // display bargraph
-    clear();
-    print_long(position);
-    lcd_goto_xy(0,1);
-    // for (i=0; i<8; i++) { print_character(display_characters[i]); }
-    display_bars(sensors,minv,maxv);
-    
-    delay_ms(10);
-  }
 }
