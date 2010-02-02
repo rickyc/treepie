@@ -87,7 +87,7 @@ int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int i;
 	int position = 2500;
 	long sum = 0;
-	int[] adjust = {-2,-1,0,1,2};
+	int adjust[5] = {-2,-1,0,1,2};
 
 	for(i=0;i<5;i++) {
 		if (i == 2) continue;
@@ -122,12 +122,13 @@ void initialize()
 	// sensors.  We use a value of 2000 for the timeout, which
 	// corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
 	pololu_3pi_init(2000);
+	
 	load_custom_characters(); // load the custom characters
 	// display message
 	print_from_program_space(hello);
 	lcd_goto_xy(0,1);
 	print("Press B");
-
+	wait_for_button_release(BUTTON_B);
 }
 
 // This is the main function, where the code starts.  All C programs
@@ -175,7 +176,7 @@ int main()
 			// to do a sharp turn to the left.  Note that the maximum
 			// value of either motor speed is 255, so we are driving
 			// it at just about 40% of the max.
-			set_motors(0,100);
+			set_motors(0,20);
 
 			// Just for fun, indicate the direction we are turning on
 			// the LEDs.
@@ -186,14 +187,14 @@ int main()
 		{
 			// We are somewhat close to being centered on the line:
 			// drive straight.
-			set_motors(100,100);
+			set_motors(20,20);
 			left_led(1);
 			right_led(1);
 		}
 		else
 		{
 			// We are far to the left of the line: turn right.
-			set_motors(100,0);
+			set_motors(20,0);
 			left_led(0);
 			right_led(1);
 		}
