@@ -82,21 +82,14 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 	}
 }
 
-// return line position
-// YOU MUST WRITE THIS.
+// Return line position
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
-	int i;
-	//int sum = STRAIGHT_AHEAD;
-	
-	if (s[0] < s[3]) 
-		return -50;
-	else if (s[0] > s[3])
-		return 50;
-	
-	/*for (i=0;i<5;i++) {
-		
-	}*/
 
+	if (s[0] < s[4]) {
+		return -50;
+  } else if (s[0] > s[4]) {
+		return 50;
+  }
 	return 0;
 }
 
