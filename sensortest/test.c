@@ -84,13 +84,15 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 
 // Return line position
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+	int i;
+	int position = 2500;
+	int sum = 0;
+//  2500    0 5000
+//	x/s = min/max
+	for(i=0;i<5;i++)
+		sum = s[i]/(maxv[i]-minv[i])*1000;
 
-	if (s[0] < s[4]) {
-		return -50;
-  } else if (s[0] > s[4]) {
-		return 50;
-  }
-	return 0;
+	return sum/5;
 }
 
 // Make a little dance: Turn left and right
@@ -158,6 +160,39 @@ int main()
 
     // compute line positon
     position = line_position(sensors,minv,maxv);
+
+	
+	// pulled from 3pi-linefollwer
+	if(position < 1000)
+	{
+		// We are far to the right of the line: turn left.
+
+		// Set the right motor to 100 and the left motor to zero,
+		// to do a sharp turn to the left.  Note that the maximum
+		// value of either motor speed is 255, so we are driving
+		// it at just about 40% of the max.
+		set_motors(0,100);
+
+		// Just for fun, indicate the direction we are turning on
+		// the LEDs.
+		left_led(1);
+		right_led(0);
+	}
+	else if(position < 3000)
+	{
+		// We are somewhat close to being centered on the line:
+		// drive straight.
+		set_motors(100,100);
+		left_led(1);
+		right_led(1);
+	}
+	else
+	{
+		// We are far to the left of the line: turn right.
+		set_motors(100,0);
+		left_led(0);
+		right_led(1);
+	}
 
     // display bargraph
     clear();
