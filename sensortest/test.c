@@ -90,10 +90,10 @@ int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 
 	for(i=0;i<5;i++) {
 		if (i == 2) continue;
-    long pct = (2000*(s[i]-minv[i]))/(maxv[i]-minv[i]) //between 0 and +2000
+    long pct = (2000*(s[i]-minv[i]))/(maxv[i]-minv[i]); //between 0 and +2000
 		sum += pct*adjust[i]; //between -4000 and +4000
 	}
-	return 2000 + sum/3; 	//value:return_value -3:0, 0:2000, 3:4000
+	return 2000 + (sum/3); 	//value:return_value -3:0, 0:2000, 3:4000
 }
 
 // Make a little dance: Turn left and right
