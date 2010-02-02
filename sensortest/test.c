@@ -85,15 +85,15 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 // Return line position
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int i;
-	long sum = 0;
+	int sum = 0;
 	int adjust[5] = {-2,-1,0,1,2};
 
 	for(i=0;i<5;i++) {
 		if (i == 2) continue;
-		sum += ((s[i]-minv[i])*2000)/(maxv[i]-minv[i]) * adjust[i];
+    long pct = (2000*(s[i]-minv[i]))/(maxv[i]-minv[i]) //between 0 and +2000
+		sum += pct*adjust[i]; //between -4000 and +4000
 	}
-	//value:return_value -3:0, 0:2000, 3:4000
-	return 2000 + sum/3;
+	return 2000 + sum/3; 	//value:return_value -3:0, 0:2000, 3:4000
 }
 
 // Make a little dance: Turn left and right
@@ -173,7 +173,7 @@ int main()
 			// to do a sharp turn to the left.  Note that the maximum
 			// value of either motor speed is 255, so we are driving
 			// it at just about 40% of the max.
-			set_motors(-20,20);
+			set_motors(0,20);
 
 			// Just for fun, indicate the direction we are turning on
 			// the LEDs.
@@ -191,7 +191,7 @@ int main()
 		else
 		{
 			// We are far to the left of the line: turn right.
-			set_motors(20,-20);
+			set_motors(20,0);
 			left_led(0);
 			right_led(1);
 		}
