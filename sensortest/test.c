@@ -84,17 +84,17 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 
 // Return line position
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
-	int i;
-	int sum = 0;
-	int adjust[5] = {-2,-1,0,1,2};
+  int i;
+  int sum = 0;
+  int adjust[5] = {-2,-1,0,1,2};
 
-	for(i=0;i<5;i++) {
+  for(i=0;i<5;i++) {
     if (i == 2) continue;             //skip the front sensor for now
     long dist = 2000*(s[i]-minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
     long range = (maxv[i]-minv[i]);   //finds the full range
     sum += (dist/range)*adjust[i];    //scales to between -4000 and +4000
-	}
-	return 2000 + (sum/3); 	//sum:return, -6k:0, 0:2000, +6k:4000
+  }
+  return 2000 + (sum/3); 	//sum:return, -6k:0, 0:2000, +6k:4000
 }
 
 // Make a little dance: Turn left and right
