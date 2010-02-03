@@ -89,11 +89,12 @@ int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int adjust[5] = {-2,-1,0,1,2};
 
 	for(i=0;i<5;i++) {
-		if (i == 2) continue;
-    long pct = (2000*(s[i]-minv[i]))/(maxv[i]-minv[i]); //between 0 and +2000
-		sum += pct*adjust[i]; //between -4000 and +4000
+    if (i == 2) continue;             //skip the front sensor for now
+    long dist = 2000*(s[i]-minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
+    long range = (maxv[i]-minv[i]);   //finds the full range
+    sum += (dist/range)*adjust[i];    //scales to between -4000 and +4000
 	}
-	return 2000 + (sum/3); 	//value:return_value -3:0, 0:2000, 3:4000
+	return 2000 + (sum/3); 	//sum:return, -6k:0, 0:2000, +6k:4000
 }
 
 // Make a little dance: Turn left and right
