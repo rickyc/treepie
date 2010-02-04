@@ -94,7 +94,7 @@ int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
     long range = (maxv[i]-minv[i]);   //finds the full range
     sum += (dist/range)*adjust[i];    //scales to between -4000 and +4000
   }
-  return 2000 + (sum/3); 	//sum:return, -6k:0, 0:2000, +6k:4000
+  return sum; 	
 }
 
 // Make a little dance: Turn left and right
@@ -164,9 +164,9 @@ int main() {
 		position = line_position(sensors,minv,maxv);
 
 		// pulled from 3pi-linefollwer [MODIFIED]
-		int rotation = 20;
+		int rotation = 100;
 
-		if(position < 1000) {
+		if(position < -3000) {
 			// We are far to the right of the line: turn left.
 
 			// Set the right motor to 100 and the left motor to zero,
@@ -179,15 +179,19 @@ int main() {
 			// the LEDs.
 			left_led(1);
 			right_led(0);
-		} else if(position < 3000) {
+		} else if (position < -1000) {
+			set_motors(0, (rotation/2) );
+		} else if (position > 1000) {
+			set_motors((rotation/2), 0);		
+		} else if(position > 3000) {
 			// We are somewhat close to being centered on the line:
 			// drive straight.
-			set_motors(rotation,rotation);
+			set_motors(rotation, 0);
 			left_led(1);
 			right_led(1);
 		} else {
-			// We are far to the left of the line: turn right.
-			set_motors(rotation,0);
+			// we should never get here
+			set_motors(rotation, rotation);
 			left_led(0);
 			right_led(1);
 		}
