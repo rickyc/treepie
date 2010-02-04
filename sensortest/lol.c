@@ -1,9 +1,8 @@
-
 /*
-   3PI template code for NYU "Intro to Robotics" course.
-   Yann LeCun, 02/2009.
-   This program was modified from an example program from Pololu. 
-   */
+	 3PI template code for NYU "Intro to Robotics" course.
+	 Yann LeCun, 02/2009.
+	 This program was modified from an example program from Pololu. 
+	 */
 
 // The 3pi include file must be at the beginning of any program that
 // uses the Pololu AVR library and 3pi.
@@ -13,6 +12,8 @@
 // ATmega168 has 16k of program space compared to 1k of RAM, so large
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
+#include <stdio.h>
+//#include <time.h>
 
 #define STRAIGHT_AHEAD 2000
 
@@ -85,44 +86,17 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 
 // Return line position
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
-	int i;
-	int sum = 0;
-	int count = 0;
-	int height[5] = {0};
-	int width[5] = {-200, -100, 0, 100, 200};
+  int i;
+  int sum = 0;
+  int adjust[5] = {-2,-1,0,1,2};
 
-
-	for (i = 0; i < 5; i++){
-		int temp = s[i] / 10;
-		if (i < 2)
-			temp = -temp;
-		if (temp < -100)
-			height[0]++;
-		else if (temp < -50)
-			height[1]++;
-		else if (temp >= -50 && temp <= 50)
-			height[2]++; 
-		else if (temp > 50 && temp < 100)
-			height[3]++;
-		else if (temp >= 100)
-			height[4]++;
-	}
-	
-	for (i = 0; i < 5; i++) {
-		sum += height[i] * width[i];
-		count += height[i];
-	}
-	
-	return sum/count;
-/*	for(i=0;i<5;i++) {
-		if (i == 2) continue;	//skip the front sensor for now
-		int dist = 10*((int)s[i]-(int)minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
-		int range = ((int)maxv[i]-(int)minv[i])/10;   //finds the full range
-		sum += (dist/range)*adjust[i];    //scales to between -4000 and +4000
-	}
-	return 2000 + 200*(sum/3); 	//sum:return, -6k:0, 0:2000, +6k:4000
-
-*/
+  for(i=0;i<5;i++) {
+    if (i == 2) continue;             //skip the front sensor for now
+    long dist = 2000*(s[i]-minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
+    long range = (maxv[i]-minv[i]);   //finds the full range
+    sum += (dist/range)*adjust[i];    //scales to between -4000 and +4000
+  }
+  return sum; 	
 }
 
 // Make a little dance: Turn left and right
@@ -135,7 +109,6 @@ void dance() {
 			set_motors(-40,40);
 		// Since our counter runs to 80, the total delay will be
 		// 80*20 = 1600 ms.
-		calibrate_line_sensors(IR_EMITTERS_ON);
 		delay_ms(20);
 	}
 	set_motors(0,0);
@@ -148,7 +121,7 @@ void initialize() {
 	// sensors.  We use a value of 2000 for the timeout, which
 	// corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
 	pololu_3pi_init(STRAIGHT_AHEAD);
-
+	
 	load_custom_characters(); // load the custom characters
 	// display message
 	print_from_program_space(hello);
@@ -157,6 +130,37 @@ void initialize() {
 	print("Press B");
 	wait_for_button_release(BUTTON_B);
 }
+
+void run_motors(int * error) {
+			// pulled from 3pi-linefollwer [MODIFIED]
+		int speed = 100;
+
+		if(*error < -3000) {
+			// We are far to the right of the line: turn left.
+
+			set_motors(0,speed);
+
+			// Just for fun, indicate the direction we are turning on
+			// the LEDs.
+			left_led(1);
+			right_led(0);
+		} else if (*error < -1500) {
+			set_motors(0, (speed/2) );
+		} else if (*error > -1500 && *error < 1500) { 
+			set_motors(speed, speed);
+		} else if (*error > 1500) {
+			set_motors((speed/2), 0);		
+		} else if(*error > 3000) {
+			set_motors(speed, 0);
+			left_led(1);
+			right_led(1);
+		} else {
+			// we should never get here
+			set_motors(speed, speed);
+			left_led(0);
+			right_led(1);
+		}
+} 
 
 // This is the main function, where the code starts.  All C programs
 // must have a main() function defined somewhere.
@@ -167,13 +171,17 @@ int main() {
 	// for calibration
 	unsigned int minv[5], maxv[5]; 
 	// line position relative to center
-	int position = 0;
-
+	int error = 0;
+	int oldError = 0;   
+	int time = 0;		//for derivative calculation
+	int oldTime = 0;	//ditto
 	int i;
+	long integral = 0;
+	long derivative = 0;
 
 	// set up the 3pi, and wait for B button to be pressed
 	initialize();
-	dance();
+
 	read_line_sensors(sensors,IR_EMITTERS_ON);
 	for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
 
@@ -189,42 +197,24 @@ int main() {
 		// and put normalized values in v
 		update_bounds(sensors,minv,maxv);
 
-		// compute line positon
-		position = line_position(sensors,minv,maxv);
-
-		// pulled from 3pi-linefollwer [MODIFIED]
-		int rotation = 100;
-
-		if(position < -20) {
-			// We are far to the right of the line: turn left.
-
-			// Set the right motor to 100 and the left motor to zero,
-			// to do a sharp turn to the left.  Note that the maximum
-			// value of either motor speed is 255, so we are driving
-			// it at just about 40% of the max.
-			set_motors(0,90);
-
-			// Just for fun, indicate the direction we are turning on
-			// the LEDs.
-			left_led(1);
-			right_led(0);
-		} else if (position < 20) {
-			set_motors(60, 60);
-			
-		} else {
-			// we should never get here
-			set_motors(90, 0);
-			left_led(0);
-			
-		}
+		// compute line position
+		error = line_position(sensors,minv,maxv);
+/*		time = clock();
+		
+		//compute derivative
+		derivative = ((error-oldError)/(time-oldTime));
+		oldTime = time;
+		oldError = error; 		
+*/		
+		run_motors(&error);
 
 		// display bargraph
 		clear();
-		print_long(position);
+		print_long(error);
 		lcd_goto_xy(0,1);
 		// for (i=0; i<8; i++) { print_character(display_characters[i]); }
 		display_bars(sensors,minv,maxv);
 
 		delay_ms(10);
-	} 
+	}
 }
