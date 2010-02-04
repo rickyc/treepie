@@ -1,8 +1,9 @@
+
 /*
-	 3PI template code for NYU "Intro to Robotics" course.
-	 Yann LeCun, 02/2009.
-	 This program was modified from an example program from Pololu. 
-	 */
+   3PI template code for NYU "Intro to Robotics" course.
+   Yann LeCun, 02/2009.
+   This program was modified from an example program from Pololu. 
+   */
 
 // The 3pi include file must be at the beginning of any program that
 // uses the Pololu AVR library and 3pi.
@@ -84,17 +85,17 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 
 // Return line position
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
-  int i;
-  int sum = 0;
-  int adjust[5] = {-2,-1,0,1,2};
+	int i;
+	int sum = 0;
+	int adjust[5] = {-2,-1,0,1,2};
 
-  for(i=0;i<5;i++) {
-    if (i == 2) continue;             //skip the front sensor for now
-    long dist = 2000*(s[i]-minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
-    long range = (maxv[i]-minv[i]);   //finds the full range
-    sum += (dist/range)*adjust[i];    //scales to between -4000 and +4000
-  }
-  return sum; 	
+	for(i=0;i<5;i++) {
+		if (i == 2) continue;	//skip the front sensor for now
+		int dist = 20*((int)s[i]-(int)minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
+		int range = ((int)maxv[i]-(int)minv[i]);   //finds the full range
+		sum += (dist/range)*adjust[i];    //scales to between -4000 and +4000
+	}
+	return 2000 + 100*(sum/3); 	//sum:return, -6k:0, 0:2000, +6k:4000
 }
 
 // Make a little dance: Turn left and right
@@ -119,7 +120,7 @@ void initialize() {
 	// sensors.  We use a value of 2000 for the timeout, which
 	// corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
 	pololu_3pi_init(STRAIGHT_AHEAD);
-	
+
 	load_custom_characters(); // load the custom characters
 	// display message
 	print_from_program_space(hello);
