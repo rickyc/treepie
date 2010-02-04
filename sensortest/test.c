@@ -87,42 +87,13 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int i;
 	int sum = 0;
-	int count = 0;
-	int height[5] = {0};
-	int width[5] = {-200, -100, 0, 100, 200};
-
-
-	for (i = 0; i < 5; i++){
-		int temp = s[i] / 10;
-		if (i < 2)
-			temp = -temp;
-		if (temp < -100)
-			height[0]++;
-		else if (temp < -50)
-			height[1]++;
-		else if (temp >= -50 && temp <= 50)
-			height[2]++; 
-		else if (temp > 50 && temp < 100)
-			height[3]++;
-		else if (temp >= 100)
-			height[4]++;
-	}
-	
-	for (i = 0; i < 5; i++) {
-		sum += height[i] * width[i];
-		count += height[i];
-	}
-	
-	return sum/count;
-/*	for(i=0;i<5;i++) {
-		if (i == 2) continue;	//skip the front sensor for now
+	int adjustment[5] = {-2, -1, 0, 1, 2};
+	for ( i = 0; i < 5; i++) {
 		int dist = 10*((int)s[i]-(int)minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
 		int range = ((int)maxv[i]-(int)minv[i])/10;   //finds the full range
-		sum += (dist/range)*adjust[i];    //scales to between -4000 and +4000
+		sum += (dist/range)*adjustment[i];    
 	}
-	return 2000 + 200*(sum/3); 	//sum:return, -6k:0, 0:2000, +6k:4000
-
-*/
+	return sum/5;
 }
 
 // Make a little dance: Turn left and right
@@ -154,28 +125,31 @@ void initialize() {
 	print_from_program_space(hello);
 	lcd_goto_xy(0,1);
 
-	print("Press B");
-	wait_for_button_release(BUTTON_B);
+	print("Press B"); 
+	while (!button_is_pressed(BUTTON_B)) {;}
 }
 
 // This is the main function, where the code starts.  All C programs
 // must have a main() function defined somewhere.
 int main() {
+
 	// global array to hold sensor values
 	unsigned int sensors[5]; 
+
 	// global arrays to hold min and max sensor values
 	// for calibration
 	unsigned int minv[5], maxv[5]; 
+
 	// line position relative to center
 	int position = 0;
-
 	int i;
 
 	// set up the 3pi, and wait for B button to be pressed
+	
 	initialize();
-	dance();
 	read_line_sensors(sensors,IR_EMITTERS_ON);
 	for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
+	dance();
 
 	// Display calibrated sensor values as a bar graph.
 	while(1) {
@@ -184,47 +158,32 @@ int main() {
 		if (button_is_pressed(BUTTON_C)) { speed += 10; delay(100); }
 
 		// Read the line sensor values
-		read_line_sensors(sensors,IR_EMITTERS_ON);
+		read_line_sensors(sensors, IR_EMITTERS_ON);
+		
 		// update minv and mav values,
 		// and put normalized values in v
 		update_bounds(sensors,minv,maxv);
 
 		// compute line positon
 		position = line_position(sensors,minv,maxv);
+		
+		int offset = position;
 
 		// pulled from 3pi-linefollwer [MODIFIED]
-		int rotation = 100;
+		int rotation = 50;
 
-		if(position < -20) {
-			// We are far to the right of the line: turn left.
-
-			// Set the right motor to 100 and the left motor to zero,
-			// to do a sharp turn to the left.  Note that the maximum
-			// value of either motor speed is 255, so we are driving
-			// it at just about 40% of the max.
-			set_motors(0,90);
-
-			// Just for fun, indicate the direction we are turning on
-			// the LEDs.
-			left_led(1);
-			right_led(0);
-		} else if (position < 20) {
-			set_motors(60, 60);
-			
-		} else {
-			// we should never get here
-			set_motors(90, 0);
-			left_led(0);
-			
-		}
-
+		if (position < 0)
+			set_motors(rotation+offset, rotation);
+		else
+			set_motors(rotation, rotation-offset);
+		
 		// display bargraph
 		clear();
 		print_long(position);
 		lcd_goto_xy(0,1);
 		// for (i=0; i<8; i++) { print_character(display_characters[i]); }
 		display_bars(sensors,minv,maxv);
-
+		
 		delay_ms(10);
 	} 
 }
