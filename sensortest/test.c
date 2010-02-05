@@ -109,6 +109,7 @@ void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 			set_motors(-40,40);
 		// Since our counter runs to 80, the total delay will be
 		// 80*20 = 1600 ms.
+		read_line_sensors(s, IR_EMITTERS_ON);
 		update_bounds(s,minv,maxv);
 		delay_ms(20);
 	}
@@ -150,7 +151,7 @@ int main() {
 	// set up the 3pi, and wait for B button to be pressed
 	for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
 	initialize();
-	read_line_sensors(sensors,IR_EMITTERS_ON);
+//	read_line_sensors(sensors,IR_EMITTERS_ON);
 	dance(sensors, minv, maxv);
 
 	// Display calibrated sensor values as a bar graph.
