@@ -88,16 +88,15 @@ int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	
 	int i;
 	int sum = 0;
-	int count = 0;
 	int adjustment[5] = {-2, -1, 0, 1, 2};
 	for (i = 0; i < 5; i++) {
+		if (i == 2) continue;
 		int dist = 10*((int)s[i]-(int)minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
 		int range = ((int)maxv[i]-(int)minv[i])/10;   //finds the full range
 		sum += (dist/range)*adjustment[i];    
-		count += (dist/range);
 	}
 	
-	return sum/count;
+	return sum/5;
 }
 
 // Make a little dance: Turn left and right
@@ -110,8 +109,8 @@ void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 			set_motors(-40,40);
 		// Since our counter runs to 80, the total delay will be
 		// 80*20 = 1600 ms.
-		delay_ms(20);
 		update_bounds(sensors,minv,maxv);
+		delay_ms(20);
 	}
 	set_motors(0,0);
 }
@@ -175,7 +174,7 @@ int main() {
 		// pulled from 3pi-linefollwer [MODIFIED]
 		int rotation = 50;
 
-		if (position < 0)
+		if (offset < 0)
 			set_motors(rotation, rotation-offset);
 		else
 			set_motors(rotation+offset, rotation);
