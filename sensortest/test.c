@@ -109,7 +109,7 @@ void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 			set_motors(-40,40);
 		// Since our counter runs to 80, the total delay will be
 		// 80*20 = 1600 ms.
-		update_bounds(sensors,minv,maxv);
+		update_bounds(s,minv,maxv);
 		delay_ms(20);
 	}
 	set_motors(0,0);
