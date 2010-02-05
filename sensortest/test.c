@@ -85,19 +85,23 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 
 // Return line position
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+	
 	int i;
 	int sum = 0;
+	int count = 0;
 	int adjustment[5] = {-2, -1, 0, 1, 2};
-	for ( i = 0; i < 5; i++) {
+	for (i = 0; i < 5; i++) {
 		int dist = 10*((int)s[i]-(int)minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
 		int range = ((int)maxv[i]-(int)minv[i])/10;   //finds the full range
 		sum += (dist/range)*adjustment[i];    
+		count += (dist/range);
 	}
-	return sum/5;
+	
+	return sum/count;
 }
 
 // Make a little dance: Turn left and right
-void dance() {
+void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int counter;
 	for(counter=0;counter<80;counter++)	{
 		if(counter < 20 || counter >= 60)
@@ -106,8 +110,8 @@ void dance() {
 			set_motors(-40,40);
 		// Since our counter runs to 80, the total delay will be
 		// 80*20 = 1600 ms.
-		calibrate_line_sensors(IR_EMITTERS_ON);
 		delay_ms(20);
+		update_bounds(sensors,minv,maxv);
 	}
 	set_motors(0,0);
 }
@@ -145,11 +149,10 @@ int main() {
 	int i;
 
 	// set up the 3pi, and wait for B button to be pressed
-	
+	for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
 	initialize();
 	read_line_sensors(sensors,IR_EMITTERS_ON);
-	for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
-	dance();
+	dance(sensors, minv, maxv);
 
 	// Display calibrated sensor values as a bar graph.
 	while(1) {
@@ -173,17 +176,16 @@ int main() {
 		int rotation = 50;
 
 		if (position < 0)
-			set_motors(rotation+offset, rotation);
-		else
 			set_motors(rotation, rotation-offset);
+		else
+			set_motors(rotation+offset, rotation);
 		
 		// display bargraph
 		clear();
 		print_long(position);
 		lcd_goto_xy(0,1);
 		// for (i=0; i<8; i++) { print_character(display_characters[i]); }
-		display_bars(sensors,minv,maxv);
-		
+		display_bars(sensors,minv,maxv);	
 		delay_ms(10);
 	} 
 }
