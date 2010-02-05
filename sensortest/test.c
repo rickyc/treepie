@@ -87,16 +87,18 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	
 	int i;
-	int sum = 0;
-	int adjustment[5] = {-2, -1, 0, 1, 2};
+	long sum = 0;
+	long count = 0;
+	int adjustment[5] = {-2000, -1000, 0, 1000, 2000};
+	
 	for (i = 0; i < 5; i++) {
-		if (i == 2) continue;
-		int dist = 10*((int)s[i]-(int)minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
-		int range = ((int)maxv[i]-(int)minv[i])/10;   //finds the full range
+		int dist = 10*(s[i]-minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
+		int range = (maxv[i]-minv[i])/10;   //finds the full range
 		sum += (dist/range)*adjustment[i];    
+		count += (dist/range);
 	}
 	
-	return sum/5;
+	return sum/count;
 }
 
 // Make a little dance: Turn left and right
@@ -119,18 +121,18 @@ void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 // Initializes the 3pi, displays a welcome message, calibrates, and
 // plays the initial music.
 void initialize() {
+	
 	// This must be called at the beginning of 3pi code, to set up the
 	// sensors.  We use a value of 2000 for the timeout, which
 	// corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
 	pololu_3pi_init(STRAIGHT_AHEAD);
 
 	load_custom_characters(); // load the custom characters
+	
 	// display message
 	print_from_program_space(hello);
 	lcd_goto_xy(0,1);
-
 	print("Press B"); 
-	while (!button_is_pressed(BUTTON_B)) {;}
 }
 
 // This is the main function, where the code starts.  All C programs
@@ -145,13 +147,15 @@ int main() {
 	unsigned int minv[5], maxv[5]; 
 
 	// line position relative to center
-	int position = 0;
+	long position = 0;
+	int offset = 0;
+	int rotation = 0;
 	int i;
 
 	// set up the 3pi, and wait for B button to be pressed
-	for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
 	initialize();
-//	read_line_sensors(sensors,IR_EMITTERS_ON);
+	for (i = 0; i < 5; i++) { minv[i] = maxv[i] = sensors[i]; }
+	read_line_sensors(sensors,IR_EMITTERS_ON);
 	dance(sensors, minv, maxv);
 
 	// Display calibrated sensor values as a bar graph.
@@ -169,20 +173,22 @@ int main() {
 
 		// compute line positon
 		position = line_position(sensors,minv,maxv);
-		
-		int offset = position;
+		offset = position/20;
 
 		// pulled from 3pi-linefollwer [MODIFIED]
-		int rotation = 50;
-
-		if (offset < 0)
-			set_motors(rotation, rotation-offset);
-		else
-			set_motors(rotation+offset, rotation);
+		rotation = 50;
+		if (offset > rotation)
+			rotation = offset;
+		if(offset < -rotation)
+			offset = -rotation;
+		
+		if (run == 1) {
+			set_motors(rotation+offset, rotation-offset);
+		}
 		
 		// display bargraph
 		clear();
-		print_long(position);
+		print_long(offset);
 		lcd_goto_xy(0,1);
 		// for (i=0; i<8; i++) { print_character(display_characters[i]); }
 		display_bars(sensors,minv,maxv);	
