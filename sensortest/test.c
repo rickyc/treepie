@@ -1,9 +1,8 @@
-
 /*
-   3PI template code for NYU "Intro to Robotics" course.
-   Yann LeCun, 02/2009.
-   This program was modified from an example program from Pololu. 
-   */
+  3PI template code for NYU "Intro to Robotics" course.
+  Yann LeCun, 02/2009.
+  This program was modified from an example program from Pololu. 
+ */
 
 // The 3pi include file must be at the beginning of any program that
 // uses the Pololu AVR library and 3pi.
@@ -14,16 +13,14 @@
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
 
-#define STRAIGHT_AHEAD 2000
-
 // speed of the robot
 int speed = 100;
 // if =1 run the robot, if =0 stop
-int run = 0;
+int run=0;
 
 // Introductory messages.  The "PROGMEM" identifier 
 // causes the data to go into program space.
-const char hello[] PROGMEM = " TURTLE";
+const char hello[] PROGMEM = " NYU/CBLL";
 
 // Data for generating the characters used in load_custom_characters
 // and display_readings.  By reading levels[] starting at various
@@ -84,7 +81,7 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 }
 
 // Return line position
-int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	
 	int i;
 	long sum = 0;
@@ -92,10 +89,9 @@ int line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int adjustment[5] = {-2000, -1000, 0, 1000, 2000};
 	
 	for (i = 0; i < 5; i++) {
-		int dist = 10*(s[i]-minv[i]);  //worst case sees s[i] = 2^16. That*2000 is within long's range
-		int range = (maxv[i]-minv[i])/10;   //finds the full range
-		sum += (dist/range)*adjustment[i];    
-		count += (dist/range);
+		long dist = 100*(s[i]-minv[i])/(maxv[i]-minv[i]);  
+		sum += dist*adjustment[i];    
+		count += dist;
 	}
 	
 	return sum/count;
@@ -120,78 +116,92 @@ void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 
 // Initializes the 3pi, displays a welcome message, calibrates, and
 // plays the initial music.
-void initialize() {
-	
-	// This must be called at the beginning of 3pi code, to set up the
-	// sensors.  We use a value of 2000 for the timeout, which
-	// corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
-	pololu_3pi_init(STRAIGHT_AHEAD);
+void initialize()
+{
+  // This must be called at the beginning of 3pi code, to set up the
+  // sensors.  We use a value of 2000 for the timeout, which
+  // corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
+  pololu_3pi_init(2000);
+  load_custom_characters(); // load the custom characters
+  // display message
+  print_from_program_space(hello);
+  lcd_goto_xy(0,1);
+  print("Press B");
 
-	load_custom_characters(); // load the custom characters
-	
-	// display message
-	print_from_program_space(hello);
-	lcd_goto_xy(0,1);
-	print("Press B"); 
 }
 
 // This is the main function, where the code starts.  All C programs
 // must have a main() function defined somewhere.
-int main() {
-
-	// global array to hold sensor values
-	unsigned int sensors[5]; 
-
-	// global arrays to hold min and max sensor values
-	// for calibration
-	unsigned int minv[5], maxv[5]; 
-
-	// line position relative to center
+int main()
+{
+  // global array to hold sensor values
+  unsigned int sensors[5]; 
+  // global arrays to hold min and max sensor values
+  // for calibration
+  unsigned int minv[5], maxv[5]; 
+  
+  // line position relative to center
 	long position = 0;
-	int offset = 0;
-	int rotation = 0;
+	unsigned int integral = 0;
+	int derivative = 0;
+	long offset = 0;
+	long rotation = 0;
 	int i;
 
-	// set up the 3pi, and wait for B button to be pressed
-	initialize();
-	for (i = 0; i < 5; i++) { minv[i] = maxv[i] = sensors[i]; }
-	read_line_sensors(sensors,IR_EMITTERS_ON);
-	dance(sensors, minv, maxv);
+  // set up the 3pi, and wait for B button to be pressed
+  initialize();
+  
+  read_line_sensors(sensors,IR_EMITTERS_ON);
+  for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
+  
+  dance(sensors, minv, maxv);
 
-	// Display calibrated sensor values as a bar graph.
-	while(1) {
-		if (button_is_pressed(BUTTON_B)) { run = 1-run; delay(200); }
-		if (button_is_pressed(BUTTON_A)) { speed -= 10; delay(100); }
-		if (button_is_pressed(BUTTON_C)) { speed += 10; delay(100); }
+  // Display calibrated sensor values as a bar graph.
+  while(1) {
+    if (button_is_pressed(BUTTON_B)) { run = 1-run; delay(200); }
+    if (button_is_pressed(BUTTON_A)) { speed -= 10; delay(100); }
+    if (button_is_pressed(BUTTON_C)) { speed += 10; delay(100); }
+    
+    // Read the line sensor values
+    read_line_sensors(sensors,IR_EMITTERS_ON);
+    // update minv and mav values,
+    // and put normalized values in v
+    update_bounds(sensors,minv,maxv);
 
-		// Read the line sensor values
-		read_line_sensors(sensors, IR_EMITTERS_ON);
-		
-		// update minv and mav values,
-		// and put normalized values in v
-		update_bounds(sensors,minv,maxv);
-
-		// compute line positon
-		position = line_position(sensors,minv,maxv);
-		offset = position/20;
+   // compute line positon
+    position = line_position(sensors,minv,maxv);
+    
+    offset = position/20;
 
 		// pulled from 3pi-linefollwer [MODIFIED]
 		rotation = 50;
-		if (offset > rotation)
-			rotation = offset;
-		if(offset < -rotation)
-			offset = -rotation;
+		//if (offset > rotation)
+		//	rotation = offset;
+		//if (offset < -rotation)
+		//	offset = -rotation;
 		
 		if (run == 1) {
-			set_motors(rotation+offset, rotation-offset);
+			short leftMotor = rotation + offset;
+			short rightMotor = rotation-offset;
+			if (leftMotor > 255)
+				leftMotor = 255;
+			if (leftMotor < -255)
+				leftMotor = -255;
+			if (rightMotor > 255)
+				rightMotor = 255;
+			if (rightMotor < -255)
+				rightMotor = -255;
+				
+			set_motors(leftMotor, rightMotor);
 		}
-		
-		// display bargraph
-		clear();
-		print_long(offset);
-		lcd_goto_xy(0,1);
-		// for (i=0; i<8; i++) { print_character(display_characters[i]); }
-		display_bars(sensors,minv,maxv);	
-		delay_ms(10);
-	} 
+
+    // display bargraph
+    clear();
+    print_long(position);
+    lcd_goto_xy(0,1);
+    // for (i=0; i<8; i++) { print_character(display_characters[i]); }
+    display_bars(sensors,minv,maxv);
+    
+    delay_ms(10);
+  }
 }
