@@ -20,7 +20,7 @@ int run=0;
 
 // Introductory messages.  The "PROGMEM" identifier 
 // causes the data to go into program space.
-const char hello[] PROGMEM = " NYU/CBLL";
+const char hello[] PROGMEM = " TURTLE";
 
 // Data for generating the characters used in load_custom_characters
 // and display_readings.  By reading levels[] starting at various
@@ -89,7 +89,7 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int adjustment[5] = {-2000, -1000, 0, 1000, 2000};
 	
 	for (i = 0; i < 5; i++) {
-		long dist = 100*(s[i]-minv[i])/(maxv[i]-minv[i]);  
+		long dist = 100*((long)s[i]-(long)minv[i])/((long)maxv[i]-(long)minv[i]);  
 		sum += dist*adjustment[i];    
 		count += dist;
 	}
