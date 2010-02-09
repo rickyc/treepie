@@ -142,8 +142,9 @@ int main()
   
   // line position relative to center
 	long position = 0;
+  long prev_position = 0;
 	long integral = 0;
-	int derivative = 0;
+	int delta = 0;
 	long offset = 0;
 	long rotation = 0;
 	int i;
@@ -169,11 +170,13 @@ int main()
     update_bounds(sensors,minv,maxv);
 
    // compute line positon
+    prev_position = position;
     position = line_position(sensors,minv,maxv);
     
+    delta = (position - prev_position);
     integral += position; //Tracks long running position offset
     
-    offset = position/9; //+ integral/5000;
+    offset = position/9 + delta*3/2; //+ integral/5000;
 
 		// pulled from 3pi-linefollwer [MODIFIED]
 		rotation = 110;
