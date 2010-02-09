@@ -160,8 +160,7 @@ int main()
   // Display calibrated sensor values as a bar graph.
   while(1) {
     if (button_is_pressed(BUTTON_B)) { run = 1-run; delay(200); }
-    if (button_is_pressed(BUTTON_A)) { speed -= 10; delay(100); }
-    if (button_is_pressed(BUTTON_C)) { speed += 10; delay(100); }
+
     
     // Read the line sensor values
     read_line_sensors(sensors,IR_EMITTERS_ON);
@@ -176,10 +175,12 @@ int main()
     delta = (position - prev_position);
     integral += position; //Tracks long running position offset
     
-    offset = position/9 + delta*3/2; //+ integral/5000;
+    offset = position/8 + delta/20; //+ integral/5000;
 
 		// pulled from 3pi-linefollwer [MODIFIED]
 		rotation = 110;
+	if (button_is_pressed(BUTTON_A)) { rotation -= 10; delay(100); }
+    	if (button_is_pressed(BUTTON_C)) { rotation += 10; delay(100); }
 		//if (offset > rotation)
 		//	rotation = offset;
 		//if (offset < -rotation)
