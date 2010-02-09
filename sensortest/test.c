@@ -89,12 +89,12 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int adjustment[5] = {-2000, -1000, 0, 1000, 2000};
 	
 	for (i = 0; i < 5; i++) {
-		long dist = 100*((long)s[i]-(long)minv[i])/((long)maxv[i]-(long)minv[i]);  
-		sum += dist*adjustment[i];    
-		count += dist;
+		long dist = (100*((long)s[i]-(long)minv[i]))/((long)maxv[i]-(long)minv[i]);  
+		sum += dist*adjustment[i];
+		count += dist; //sum of 0-100's
 	}
 	
-	return sum/count;
+	return sum/count; //between -2000 and +2000
 }
 
 // Make a little dance: Turn left and right
@@ -142,7 +142,7 @@ int main()
   
   // line position relative to center
 	long position = 0;
-	unsigned int integral = 0;
+	long integral = 0;
 	int derivative = 0;
 	long offset = 0;
 	long rotation = 0;
@@ -171,7 +171,8 @@ int main()
    // compute line positon
     position = line_position(sensors,minv,maxv);
     
-    offset = position/20;
+    integral += position; //Tracks long running position offset
+    offset = position/20 + integral/5000;
 
 		// pulled from 3pi-linefollwer [MODIFIED]
 		rotation = 50;
