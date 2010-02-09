@@ -1,8 +1,8 @@
-CFLAGS=-g -Wall -mcall-prologues -mmcu=atmega168 -Os
+CFLAGS=-g -Wall -mcall-prologues -mmcu=atmega328p -Os
 CPP=/usr/bin/avr-g++
 CC=/usr/bin/avr-gcc
 OBJ2HEX=/usr/bin/avr-objcopy 
-LDFLAGS=-Wl,-gc-sections -lpololu_atmega168
+LDFLAGS=-Wl,-gc-sections -lpololu_atmega328p
 #LDFLAGS := $(LDFLAGS) -Wl,-u,vfprintf -lprintf_flt -lm
 #LDFLAGS := $(LDFLAGS) -Wl,-u,vfprintf -lprintf_min
 
@@ -22,4 +22,4 @@ clean:
 	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@
 
 program: $(TARGET).hex
-	$(AVRDUDE) -p m168 -c avrisp2 -P $(PORT) -U flash:w:$(TARGET).hex
+	$(AVRDUDE) -p m328p -c avrisp2 -P $(PORT) -U flash:w:$(TARGET).hex
