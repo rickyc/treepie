@@ -172,10 +172,11 @@ int main()
     position = line_position(sensors,minv,maxv);
     
     integral += position; //Tracks long running position offset
-    offset = position/20 + integral/5000;
+    
+    offset = position/9; //+ integral/5000;
 
 		// pulled from 3pi-linefollwer [MODIFIED]
-		rotation = 50;
+		rotation = 110;
 		//if (offset > rotation)
 		//	rotation = offset;
 		//if (offset < -rotation)
