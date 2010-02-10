@@ -117,8 +117,8 @@ void battery_reading() {
 void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int counter;
 	for(counter=0;counter<80;counter++)	{
-		if(counter < 20 || counter >= 60){ set_motors(40,-40);
-    } else { set_motors(-40,40); }
+		if(counter < 20 || counter >= 60) { set_motors(40,-40); }
+    else { set_motors(-40,40); }
 		// Since our counter runs to 80, the total delay will be
 		// 80*20 = 1600 ms.
 		read_line_sensors(s, IR_EMITTERS_ON);
@@ -166,7 +166,7 @@ int main() {
 
   // display calibrated sensor values as a bar graph.
   while(1) {
-	//Button press adjustments
+		// button press adjustments (RFCT)
     if (button_is_pressed(BUTTON_A)) { 
 			play_from_program_space(beep_button_top);
 			rotation -= 10; 
@@ -195,22 +195,21 @@ int main() {
     integral += position; // tracks long running position offset
     offset = position/8 + delta/20; //TODO: + integral/5000;
 
-   
     //if (offset > rotation) { rotation = offset; }
     //if (offset < -rotation) { offset = -rotation; }
 		
-    if (run == 1){
+    if (run == 1) {
       short leftMotor = rotation + offset;
       short rightMotor = rotation - offset;
       short motorsMax = (offset < 0) ? rightMotor : leftMotor;
 
-      if (motorsMax > MAX_MOTOR_SPEED) {     //then scale motors down to <255
+      if (motorsMax > MAX_MOTOR_SPEED) {     // then scale motors down to <255
         int scaledMotorSpeed = MAX_MOTOR_SPEED/motorsMax;
         leftMotor = leftMotor * scaledMotorSpeed;
         rightMotor = rightMotor * scaledMotorSpeed;
       }
 
-      // Now need truncation on negatives, just in case
+      // truncation on negatives for safety
       leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
 
