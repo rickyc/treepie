@@ -205,7 +205,7 @@ int main() {
       short motorsMax = (offset < 0) ? rightMotor : leftMotor;
 
       if (motorsMax > MAX_MOTOR_SPEED) {     //then scale motors down to <255
-		scaledMotorSpeed = MAX_MOTOR_SPEED/motorsMax;
+        int scaledMotorSpeed = MAX_MOTOR_SPEED/motorsMax;
         leftMotor = leftMotor * scaledMotorSpeed;
         rightMotor = rightMotor * scaledMotorSpeed;
       }
