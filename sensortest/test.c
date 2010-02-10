@@ -2,7 +2,7 @@
   3PI template code for NYU "Intro to Robotics" course.
   Yann LeCun, 02/2009.
   This program was modified from an example program from Pololu. 
- */
+*/
 
 // The 3pi include file must be at the beginning of any program that
 // uses the Pololu AVR library and 3pi.
@@ -13,49 +13,84 @@
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
 
+#define MIN_MOTOR_SPEED -255
+#define MAX_MOTOR_SPEED 255
+
+// A couple of simple tunes, stored in program space.
+const char welcome[] PROGMEM = ">g32>>c32";
+const char thank_you_music[] PROGMEM = ">>c32>g32";
+const char beep_button_top[] PROGMEM = "!c32";
+const char beep_button_middle[] PROGMEM = "!e32";
+const char beep_button_bottom[] PROGMEM = "!g32";
+const char timer_tick[] PROGMEM = "!v8>>c32";
+
 // speed of the robot
 int speed = 100;
-// if =1 run the robot, if =0 stop
-int run=0;
+int run = 0;  // if =1 run the robot, if =0 stop
 
 // Introductory messages.  The "PROGMEM" identifier 
 // causes the data to go into program space.
-const char hello[] PROGMEM = " TURTLE";
-
-// Data for generating the characters used in load_custom_characters
-// and display_readings.  By reading levels[] starting at various
-// offsets, we can generate all of the 7 extra characters needed for a
-// bargraph.  This is also stored in program space.
-const char levels[] PROGMEM = {
-	0b00000,
-	0b00000,
-	0b00000,
-	0b00000,
-	0b00000,
-	0b00000,
-	0b00000,
-	0b11111,
-	0b11111,
-	0b11111,
-	0b11111,
-	0b11111,
-	0b11111,
-	0b11111
-};
+const char robotName[] PROGMEM = " TURTLE";
 
 char display_characters[9] = { ' ', 0, 1, 2, 3, 4, 5, 6, 255 };
 
 // This function loads custom characters into the LCD.  Up to 8
-// characters can be loaded; we use them for 7 levels of a bar graph.
-void load_custom_characters()
-{
+// characters can be loaded; we use them for 6 levels of a bar graph
+// plus a back arrow and a musical note character.
+void load_custom_characters() {
+	// Data for generating the characters used in load_custom_characters
+	// and display_readings.  By reading levels[] starting at various
+	// offsets, we can generate all of the 7 extra characters needed for a
+	// bargraph.  This is also stored in program space.
+	static const char levels[] PROGMEM = {
+		0b00000,
+		0b00000,
+		0b00000,
+		0b00000,
+		0b00000,
+		0b00000,
+		0b00000,
+		0b11111,
+		0b11111,
+		0b11111,
+		0b11111,
+		0b11111,
+		0b11111,
+		0b11111
+	};
+
+	// This character is a musical note.
+	static const prog_char note[] PROGMEM = {
+		0b00100,
+		0b00110,
+		0b00101,
+		0b00101,
+		0b00100,
+		0b11100,
+		0b11100,
+		0b00000,
+	};
+
+	// This character is a back arrow.
+	static const prog_char back_arrow[] PROGMEM = {
+		0b00000,
+		0b00010,
+		0b00001,
+		0b00101,
+		0b01001,
+		0b11110,
+		0b01000,
+		0b00100,
+	};
+
 	lcd_load_custom_character(levels+0,0); // no offset, e.g. one bar
 	lcd_load_custom_character(levels+1,1); // two bars
 	lcd_load_custom_character(levels+2,2); // etc...
-	lcd_load_custom_character(levels+3,3);
-	lcd_load_custom_character(levels+4,4);
-	lcd_load_custom_character(levels+5,5);
-	lcd_load_custom_character(levels+6,6);
+	lcd_load_custom_character(levels+4,3); // skip level 3
+	lcd_load_custom_character(levels+5,4);
+	lcd_load_custom_character(levels+6,5);
+	lcd_load_custom_character(back_arrow,6);
+	lcd_load_custom_character(note,7);
 	clear(); // the LCD must be cleared for the characters to take effect
 }
 
@@ -82,19 +117,27 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 
 // Return line position
 long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
-	
 	int i;
 	long sum = 0;
 	long count = 0;
 	int adjustment[5] = {-2000, -1000, 0, 1000, 2000};
 	
 	for (i = 0; i < 5; i++) {
-		long dist = (100*((long)s[i]-(long)minv[i]))/((long)maxv[i]-(long)minv[i]);  
+		long minv = (long)minv[i];
+		long dist = (100*((long)s[i]-minv))/((long)maxv[i]-minv);
 		sum += dist*adjustment[i];
 		count += dist; //sum of 0-100's
 	}
 	
 	return sum/count; //between -2000 and +2000
+}
+
+// Displays the battery voltage.
+void battery_reading() {
+	unsigned int bat = read_battery_millivolts_svp();
+	print_long(bat);
+	print("mV");
+	delay_ms(250);
 }
 
 // Make a little dance: Turn left and right
@@ -116,27 +159,22 @@ void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 
 // Initializes the 3pi, displays a welcome message, calibrates, and
 // plays the initial music.
-void initialize()
-{
+void initialize() {
   // This must be called at the beginning of 3pi code, to set up the
   // sensors.  We use a value of 2000 for the timeout, which
   // corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
   pololu_3pi_init(2000);
   load_custom_characters(); // load the custom characters
-  // display message
-  print_from_program_space(hello);
+  print_from_program_space(robotName);
   lcd_goto_xy(0,1);
   print("Press B");
-
 }
 
 // This is the main function, where the code starts.  All C programs
 // must have a main() function defined somewhere.
 int main() {
-  // global array to hold sensor values
-  unsigned int sensors[5]; 
-  // global arrays to hold min and max sensor values for calibration
-  unsigned int minv[5], maxv[5]; 
+  unsigned int sensors[5]; // global array to hold sensor values
+  unsigned int minv[5], maxv[5]; // global arrays to hold min and max sensor values for calibration
 
   // line position relative to center
   long position = 0;
@@ -144,7 +182,7 @@ int main() {
   long integral = 0;
   int delta = 0;
   long offset = 0;
-  long rotation = 0;
+  long rotation = 110;
   int i;
 
   // set up the 3pi, and wait for B button to be pressed
@@ -153,14 +191,26 @@ int main() {
   read_line_sensors(sensors,IR_EMITTERS_ON);
   for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
 
-  dance(sensors, minv, maxv);
+  dance(sensors, minv, maxv); // sensor calibration
 
-  // Display calibrated sensor values as a bar graph.
+  // display calibrated sensor values as a bar graph.
   while(1) {
-    if (button_is_pressed(BUTTON_B)) { run = 1-run; delay(200); }
+		 //Button press adjustments
+    if (button_is_pressed(BUTTON_A)) { 
+			play_from_program_space(beep_button_top);
+			rotation -= 10; 
+			delay_ms(100); 
+		} else if (button_is_pressed(BUTTON_B)) { 
+			play_from_program_space(beep_button_middle);
+			run = 1-run; 
+			delay_ms(200); 
+		} else if (button_is_pressed(BUTTON_C)) { 
+			play_from_program_space(beep_button_bottom);
+			rotation += 10; 
+			delay_ms(100); 
+		}
 
-
-    // Read the line sensor values
+    // read the line sensor values
     read_line_sensors(sensors,IR_EMITTERS_ON);
     // update minv and mav values,
     // and put normalized values in v
@@ -171,17 +221,11 @@ int main() {
     position = line_position(sensors,minv,maxv);
 
     delta = (position - prev_position);
-    integral += position; //Tracks long running position offset
+    integral += position; // tracks long running position offset
 
     offset = position/8 + delta/20; //+ integral/5000;
 
-    rotation = 110;
-
-    //Button press adjustments
-    if (button_is_pressed(BUTTON_A)) { rotation -= 10; delay(100); }
-    if (button_is_pressed(BUTTON_C)) { rotation += 10; delay(100); }
-
-    // pulled from 3pi-linefollwer [MODIFIED]
+   
     //if (offset > rotation)
     //	rotation = offset;
     //if (offset < -rotation)
@@ -191,17 +235,18 @@ int main() {
       short leftMotor = rotation + offset;
       short rightMotor = rotation - offset;
 
-      short motorsMax = leftMotor;  //Always assign
-      if (offset < 0){              //then rightMotor is higher
-        motorsMax = rightMotor;
+      short motorsMax;
+      motorsMax = (offset < 0) ? rightMotor : leftMotor; // rightMotor is higher
+
+      if (motorsMax > MAX_MOTOR_SPEED) {     //then scale motors down to <255
+				scaledMotorSpeed = MAX_MOTOR_SPEED/motorsMax;
+        leftMotor = leftMotor * scaledMotorSpeed;
+        rightMotor = rightMotor * scaledMotorSpeed;
       }
-      if (motorsMax > 255){         //then scale motors down to <255
-        leftMotor = leftMotor * 255 / motorsMax;
-        rightMotor = rightMotor * 255 / motorsMax;
-      }
-      //Now need truncation on negatives, just in case
-      if (leftMotor < -255){ leftMotor = -255; }
-      if (rightMotor < -255){ rightMotor = -255; }
+
+      // Now need truncation on negatives, just in case
+      leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
+      rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
 
       set_motors(leftMotor, rightMotor);
     }
