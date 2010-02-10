@@ -1,6 +1,5 @@
 /*
-  3PI template code for NYU "Intro to Robotics" course.
-  Yann LeCun, 02/2009.
+  3PI template code for NYU "Intro to Robotics" course. Yann LeCun, 02/2010.
   This program was modified from an example program from Pololu. 
 */
 
@@ -24,9 +23,8 @@ const char beep_button_middle[] PROGMEM = "!e32";
 const char beep_button_bottom[] PROGMEM = "!g32";
 const char timer_tick[] PROGMEM = "!v8>>c32";
 
-// speed of the robot
-int speed = 100;
-int run = 0;  // if =1 run the robot, if =0 stop
+int speed = 100;	// speed of the robot
+int run = 0;		// if =1 run the robot, if =0 stop
 
 // Introductory messages.  The "PROGMEM" identifier 
 // causes the data to go into program space.
@@ -43,44 +41,18 @@ void load_custom_characters() {
 	// offsets, we can generate all of the 7 extra characters needed for a
 	// bargraph.  This is also stored in program space.
 	static const char levels[] PROGMEM = {
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00000,
-		0b11111,
-		0b11111,
-		0b11111,
-		0b11111,
-		0b11111,
-		0b11111,
-		0b11111
+		0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000,
+		0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111
 	};
 
 	// This character is a musical note.
 	static const prog_char note[] PROGMEM = {
-		0b00100,
-		0b00110,
-		0b00101,
-		0b00101,
-		0b00100,
-		0b11100,
-		0b11100,
-		0b00000,
+		0b00100, 0b00110, 0b00101, 0b00101, 0b00100, 0b11100, 0b11100, 0b00000, 
 	};
 
 	// This character is a back arrow.
 	static const prog_char back_arrow[] PROGMEM = {
-		0b00000,
-		0b00010,
-		0b00001,
-		0b00101,
-		0b01001,
-		0b11110,
-		0b01000,
-		0b00100,
+		0b00000, 0b00010, 0b00001, 0b00101, 0b01001, 0b11110, 0b01000, 0b00100,
 	};
 
 	lcd_load_custom_character(levels+0,0); // no offset, e.g. one bar
@@ -109,9 +81,10 @@ void display_bars(const unsigned int *s, const unsigned int *minv, const unsigne
 
 void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int i;
-	for (i=0; i<5; i++) { 
-		if (s[i]<minv[i]) minv[i] = s[i];
-		if (s[i]>maxv[i]) maxv[i] = s[i];
+	for (i=0; i<5; i++) {
+		unsigned int val = s[i];
+		if (val<minv[i]){ minv[i] = val; }
+		if (val>maxv[i]){ maxv[i] = val; }
 	}
 }
 
@@ -126,10 +99,10 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 		long minv = (long)minv[i];
 		long dist = (100*((long)s[i]-minv))/((long)maxv[i]-minv);
 		sum += dist*adjustment[i];
-		count += dist; //sum of 0-100's
+		count += dist;	//sum of 0-100's
 	}
 	
-	return sum/count; //between -2000 and +2000
+	return sum/count;	//between -2000 and +2000
 }
 
 // Displays the battery voltage.
@@ -144,10 +117,8 @@ void battery_reading() {
 void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int counter;
 	for(counter=0;counter<80;counter++)	{
-		if(counter < 20 || counter >= 60)
-			set_motors(40,-40);
-		else
-			set_motors(-40,40);
+		if(counter < 20 || counter >= 60){ set_motors(40,-40);
+    } else { set_motors(-40,40); }
 		// Since our counter runs to 80, the total delay will be
 		// 80*20 = 1600 ms.
 		read_line_sensors(s, IR_EMITTERS_ON);
@@ -173,8 +144,8 @@ void initialize() {
 // This is the main function, where the code starts.  All C programs
 // must have a main() function defined somewhere.
 int main() {
-  unsigned int sensors[5]; // global array to hold sensor values
-  unsigned int minv[5], maxv[5]; // global arrays to hold min and max sensor values for calibration
+  unsigned int sensors[5];			// global array to hold sensor values
+  unsigned int minv[5], maxv[5];	// global arrays to hold min and max sensor values for calibration
 
   // line position relative to center
   long position = 0;
@@ -195,7 +166,7 @@ int main() {
 
   // display calibrated sensor values as a bar graph.
   while(1) {
-		 //Button press adjustments
+	//Button press adjustments
     if (button_is_pressed(BUTTON_A)) { 
 			play_from_program_space(beep_button_top);
 			rotation -= 10; 
@@ -222,24 +193,19 @@ int main() {
 
     delta = (position - prev_position);
     integral += position; // tracks long running position offset
-
-    offset = position/8 + delta/20; //+ integral/5000;
+    offset = position/8 + delta/20; //TODO: + integral/5000;
 
    
-    //if (offset > rotation)
-    //	rotation = offset;
-    //if (offset < -rotation)
-    //	offset = -rotation;
+    //if (offset > rotation) { rotation = offset; }
+    //if (offset < -rotation) { offset = -rotation; }
 		
     if (run == 1){
       short leftMotor = rotation + offset;
       short rightMotor = rotation - offset;
-
-      short motorsMax;
-      motorsMax = (offset < 0) ? rightMotor : leftMotor; // rightMotor is higher
+      short motorsMax = (offset < 0) ? rightMotor : leftMotor;
 
       if (motorsMax > MAX_MOTOR_SPEED) {     //then scale motors down to <255
-				scaledMotorSpeed = MAX_MOTOR_SPEED/motorsMax;
+		scaledMotorSpeed = MAX_MOTOR_SPEED/motorsMax;
         leftMotor = leftMotor * scaledMotorSpeed;
         rightMotor = rightMotor * scaledMotorSpeed;
       }
