@@ -132,74 +132,79 @@ void initialize()
 
 // This is the main function, where the code starts.  All C programs
 // must have a main() function defined somewhere.
-int main()
-{
+int main() {
   // global array to hold sensor values
   unsigned int sensors[5]; 
-  // global arrays to hold min and max sensor values
-  // for calibration
+  // global arrays to hold min and max sensor values for calibration
   unsigned int minv[5], maxv[5]; 
-  
+
   // line position relative to center
-	long position = 0;
+  long position = 0;
   long prev_position = 0;
-	long integral = 0;
-	int delta = 0;
-	long offset = 0;
-	long rotation = 0;
-	int i;
+  long integral = 0;
+  int delta = 0;
+  long offset = 0;
+  long rotation = 0;
+  int i;
 
   // set up the 3pi, and wait for B button to be pressed
   initialize();
-  
+
   read_line_sensors(sensors,IR_EMITTERS_ON);
   for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
-  
+
   dance(sensors, minv, maxv);
 
   // Display calibrated sensor values as a bar graph.
   while(1) {
     if (button_is_pressed(BUTTON_B)) { run = 1-run; delay(200); }
 
-    
+
     // Read the line sensor values
     read_line_sensors(sensors,IR_EMITTERS_ON);
     // update minv and mav values,
     // and put normalized values in v
     update_bounds(sensors,minv,maxv);
 
-   // compute line positon
+    // compute line positon
     prev_position = position;
     position = line_position(sensors,minv,maxv);
-    
+
     delta = (position - prev_position);
     integral += position; //Tracks long running position offset
-    
+
     offset = position/8 + delta/20; //+ integral/5000;
 
-		// pulled from 3pi-linefollwer [MODIFIED]
-		rotation = 110;
-	if (button_is_pressed(BUTTON_A)) { rotation -= 10; delay(100); }
-    	if (button_is_pressed(BUTTON_C)) { rotation += 10; delay(100); }
-		//if (offset > rotation)
-		//	rotation = offset;
-		//if (offset < -rotation)
-		//	offset = -rotation;
+    rotation = 110;
+
+    //Button press adjustments
+    if (button_is_pressed(BUTTON_A)) { rotation -= 10; delay(100); }
+    if (button_is_pressed(BUTTON_C)) { rotation += 10; delay(100); }
+
+    // pulled from 3pi-linefollwer [MODIFIED]
+    //if (offset > rotation)
+    //	rotation = offset;
+    //if (offset < -rotation)
+    //	offset = -rotation;
 		
-		if (run == 1) {
-			short leftMotor = rotation + offset;
-			short rightMotor = rotation-offset;
-			if (leftMotor > 255)
-				leftMotor = 255;
-			if (leftMotor < -255)
-				leftMotor = -255;
-			if (rightMotor > 255)
-				rightMotor = 255;
-			if (rightMotor < -255)
-				rightMotor = -255;
-				
-			set_motors(leftMotor, rightMotor);
-		}
+    if (run == 1){
+      short leftMotor = rotation + offset;
+      short rightMotor = rotation - offset;
+
+      short motorsMax = leftMotor;  //Always assign
+      if (offset < 0){              //then rightMotor is higher
+        motorsMax = rightMotor;
+      }
+      if (motorsMax > 255){         //then scale motors down to <255
+        leftMotor = leftMotor * 255 / motorsMax;
+        rightMotor = rightMotor * 255 / motorsMax;
+      }
+      //Now need truncation on negatives, just in case
+      if (leftMotor < -255){ leftMotor = -255; }
+      if (rightMotor < -255){ rightMotor = -255; }
+
+      set_motors(leftMotor, rightMotor);
+    }
 
     // display bargraph
     clear();
@@ -207,7 +212,7 @@ int main()
     lcd_goto_xy(0,1);
     // for (i=0; i<8; i++) { print_character(display_characters[i]); }
     display_bars(sensors,minv,maxv);
-    
+
     delay_ms(10);
   }
 }
