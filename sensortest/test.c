@@ -96,8 +96,8 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int adjustment[5] = {-2000, -1000, 0, 1000, 2000};
 	
 	for (i = 0; i < 5; i++) {
-		long minv = (long)minv[i];
-		long dist = (100*((long)s[i]-minv))/((long)maxv[i]-minv);
+		long min = (long)minv[i];
+		long dist = (100*((long)s[i]-min))/((long)maxv[i]-min);
 		sum += dist*adjustment[i];
 		count += dist;	//sum of 0-100's
 	}
@@ -107,10 +107,11 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 
 // Displays the battery voltage.
 void battery_reading() {
-	unsigned int bat = read_battery_millivolts_svp();
+	/*unsigned int bat = read_battery_millivolts_svp();
 	print_long(bat);
 	print("mV");
 	delay_ms(250);
+*/
 }
 
 // Make a little dance: Turn left and right
@@ -203,10 +204,11 @@ int main() {
       short rightMotor = rotation - offset;
       short motorsMax = (offset < 0) ? rightMotor : leftMotor;
 
-      if (motorsMax > MAX_MOTOR_SPEED) {     // then scale motors down to <255
+      /* if (motorsMax > MAX_MOTOR_SPEED) {     // then scale motors down to <255
         leftMotor = (leftMotor*MAX_MOTOR_SPEED)/motorsMax;
         rightMotor = (rightMotor*MAX_MOTOR_SPEED)/motorsMax; 
       }
+      */
 
       // truncation on negatives for safety
       leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
