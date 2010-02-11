@@ -154,9 +154,9 @@ int main() {
   long integral = 0;
   int delta = 0;
   long offset = 0;
-  long rotation = 110;
+  long rotation = 120;
   int i;
-  int positionDivisor = 5;
+  int positionDivisor = 4;
 
   // set up the 3pi, and wait for B button to be pressed
   initialize();
@@ -196,7 +196,7 @@ int main() {
 		// position = -2000 to 2000
     delta = 10*(position - prev_position)/prev_position; // 4000/20 200
     integral += position; // tracks long running position offset
-    offset = position/positionDivisor + delta/20 + integral/30000;
+    offset = position/positionDivisor + delta/20;// + integral/30000;
 		
     if (run == 1) {
       short leftMotor = rotation + offset;
