@@ -106,13 +106,14 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 }
 
 // Displays the battery voltage.
+/*
 void battery_reading() {
-	/*unsigned int bat = read_battery_millivolts_svp();
+	unsigned int bat = read_battery_millivolts_svp();
 	print_long(bat);
 	print("mV");
 	delay_ms(250);
-*/
 }
+*/
 
 // Make a little dance: Turn left and right
 void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
