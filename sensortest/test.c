@@ -195,9 +195,6 @@ int main() {
     delta = (position - prev_position);
     integral += position; // tracks long running position offset
     offset = position/8 + delta/20; //TODO: + integral/5000;
-
-    //if (offset > rotation) { rotation = offset; }
-    //if (offset < -rotation) { offset = -rotation; }
 		
     if (run == 1) {
       short leftMotor = rotation + offset;
