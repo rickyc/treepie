@@ -156,6 +156,7 @@ int main() {
   long offset = 0;
   long rotation = 110;
   int i;
+  int positionDivisor = 5;
 
   // set up the 3pi, and wait for B button to be pressed
   initialize();
@@ -170,7 +171,7 @@ int main() {
 		// button press adjustments (RFCT)
     if (button_is_pressed(BUTTON_A)) { 
 			play_from_program_space(beep_button_top);
-			rotation -= 10; 
+			rotation -= 5;
 			delay_ms(100); 
 		} else if (button_is_pressed(BUTTON_B)) { 
 			play_from_program_space(beep_button_middle);
@@ -178,7 +179,7 @@ int main() {
 			delay_ms(200); 
 		} else if (button_is_pressed(BUTTON_C)) { 
 			play_from_program_space(beep_button_bottom);
-			rotation += 10; 
+			rotation += 5;
 			delay_ms(100); 
 		}
 
@@ -192,9 +193,10 @@ int main() {
     prev_position = position;
     position = line_position(sensors,minv,maxv);
 
-    delta = (position - prev_position);
+		// position = -2000 to 2000
+    delta = 10*(position - prev_position)/prev_position; // 4000/20 200
     integral += position; // tracks long running position offset
-    offset = position/8 + delta/20; //TODO: + integral/5000;
+    offset = position/positionDivisor + delta/20 + integral/30000;
 		
     if (run == 1) {
       short leftMotor = rotation + offset;
@@ -215,12 +217,12 @@ int main() {
     }
 
     // display bargraph
-    clear();
-    print_long(position);
-    lcd_goto_xy(0,1);
+//    clear();
+//    print_long(position);
+//    lcd_goto_xy(0,1);
     // for (i=0; i<8; i++) { print_character(display_characters[i]); }
-    display_bars(sensors,minv,maxv);
+//    display_bars(sensors,minv,maxv);
 
-    delay_ms(10);
+    delay_ms(2);
   }
 }
