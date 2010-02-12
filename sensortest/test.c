@@ -122,8 +122,10 @@ void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
     else { set_motors(-40,40); }
 		// Since our counter runs to 80, the total delay will be
 		// 80*20 = 1600 ms.
+
 		read_line_sensors(s, IR_EMITTERS_ON);
 		update_bounds(s,minv,maxv);
+
 		delay_ms(20);
 	}
 	set_motors(0,0);
@@ -140,7 +142,6 @@ void initialize() {
   print_from_program_space(robotName);
   lcd_goto_xy(0,1);
   print("Press B");
-
 }
 
 void idle() {
