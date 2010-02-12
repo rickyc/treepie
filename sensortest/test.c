@@ -14,6 +14,7 @@
 
 #define MIN_MOTOR_SPEED -255
 #define MAX_MOTOR_SPEED 255
+#define ROBOT_SPEED 130
 
 // A couple of simple tunes, stored in program space.
 const char welcome[] PROGMEM = ">g32>>c32";
@@ -106,14 +107,12 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 }
 
 // Displays the battery voltage.
-/*
 void battery_reading() {
-	unsigned int bat = read_battery_millivolts_svp();
+	unsigned int bat = read_battery_millivolts();
 	print_long(bat);
 	print("mV");
 	delay_ms(250);
 }
-*/
 
 // Make a little dance: Turn left and right
 void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
@@ -141,6 +140,24 @@ void initialize() {
   print_from_program_space(robotName);
   lcd_goto_xy(0,1);
   print("Press B");
+
+}
+
+void idle() {
+	// Display calibrated values as a bar graph.
+	while(!button_is_pressed(BUTTON_B)) {
+		// Read the sensor values and get the position measurement.
+		unsigned int position = read_line(sensors,IR_EMITTERS_ON);
+		clear();
+		print_long(position);
+		lcd_goto_xy(0,1);
+		display_readings(sensors);
+		delay_ms(100);
+	}
+
+	run = 1;
+	wait_for_button_release(BUTTON_B);
+	clear();
 }
 
 // This is the main function, where the code starts.  All C programs
@@ -153,11 +170,10 @@ int main() {
   long position = 0;
   long prev_position = 0;
   long integral = 0;
-  int delta = 0;
+  int derivative = 0;
   long offset = 0;
-  long rotation = 110;
   int i;
-  int positionDivisor = 5;
+  int positionDivisor = 4;
 
   // set up the 3pi, and wait for B button to be pressed
   initialize();
@@ -167,23 +183,11 @@ int main() {
 
   dance(sensors, minv, maxv); // sensor calibration
 
+	// waits until the user presses the B button
+	idle();
+
   // display calibrated sensor values as a bar graph.
   while(1) {
-		// button press adjustments (RFCT)
-    if (button_is_pressed(BUTTON_A)) { 
-			play_from_program_space(beep_button_top);
-			rotation -= 5;
-			delay_ms(100); 
-		} else if (button_is_pressed(BUTTON_B)) { 
-			play_from_program_space(beep_button_middle);
-			run = 1-run; 
-			delay_ms(200); 
-		} else if (button_is_pressed(BUTTON_C)) { 
-			play_from_program_space(beep_button_bottom);
-			rotation += 5;
-			delay_ms(100); 
-		}
-
     // read the line sensor values
     read_line_sensors(sensors,IR_EMITTERS_ON);
     // update minv and mav values,
@@ -195,20 +199,28 @@ int main() {
     position = line_position(sensors,minv,maxv);
 
 		// position = -2000 to 2000
-    delta = 10*(position - prev_position)/prev_position; // 4000/20 200
+    derivative = 10*(position - prev_position)/11;
     integral += position; // tracks long running position offset
-    offset = position/positionDivisor + delta/20 + integral/30000;
+    offset = position/positionDivisor + derivative/10 + integral/30000;
+		// positive => right turn, negative => left turn
 		
     if (run == 1) {
-      short leftMotor = rotation + offset;
-      short rightMotor = rotation - offset;
+      short leftMotor = ROBOT_SPEED + offset;
+      short rightMotor = ROBOT_SPEED - offset;
       short motorsMax = (offset < 0) ? rightMotor : leftMotor;
 
-      /* if (motorsMax > MAX_MOTOR_SPEED) {     // then scale motors down to <255
-        leftMotor = (leftMotor*MAX_MOTOR_SPEED)/motorsMax;
-        rightMotor = (rightMotor*MAX_MOTOR_SPEED)/motorsMax; 
+      if (motorsMax > MAX_MOTOR_SPEED) {     // then scale motors down to <255
+        leftMotor = (leftMotor * MAX_MOTOR_SPEED)/motorsMax;
+        rightMotor = (rightMotor * MAX_MOTOR_SPEED)/motorsMax; 
+
+				// DEBUG CODE
+				play_from_program_space(welcome);
+				lcd_goto_xy(0,1);
+				char display[8];
+				sprintf(display,"%i %i",leftMotor,rightMotor);
+				print(display);
+				clear();
       }
-      */
 
       // truncation on negatives for safety
       leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
@@ -218,12 +230,14 @@ int main() {
     }
 
     // display bargraph
-//    clear();
-//    print_long(position);
-//    lcd_goto_xy(0,1);
-    // for (i=0; i<8; i++) { print_character(display_characters[i]); }
-//    display_bars(sensors,minv,maxv);
+		/*
+		clear();
+		print_long(position);
+		lcd_goto_xy(0,1);
+		for (i=0; i<8; i++) { print_character(display_characters[i]); }
+			display_bars(sensors,minv,maxv);
+		*/
 
-    delay_ms(2);
+    // delay_ms(10);
   }
 }
