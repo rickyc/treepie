@@ -196,7 +196,7 @@ delay_ms(100);
 // position = -2000 to 2000
     delta = (10*position - 10*prev_position); 
     integral += (position+prev_position)/2; // tracks long runningposition offset
-    offset = position/9 + delta/50 + integral/10000;
+    offset = position/6 + delta/10 + integral/10000;
  
     if (run == 1) {
       short leftMotor = rotation + offset;
