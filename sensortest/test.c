@@ -11,9 +11,8 @@ This program was modified from an example program from Pololu.
 // ATmega168 has 16k of program space compared to 1k of RAM, so large
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
- 
-#define MIN_MOTOR_SPEED 	-100
-#define MAX_MOTOR_SPEED 	255
+#define MIN_MOTOR_SPEED -100
+#define MAX_MOTOR_SPEED 255
  
 // A couple of simple tunes, stored in program space.
 const char welcome[] PROGMEM = ">g32>>c32";
@@ -155,9 +154,9 @@ int main() {
   long integral = 0;
   int delta = 0;
   long offset = 0;
-  long rotation = 155;
+  long rotation = 180;
   int i;
-  int positionDivisor = 5;
+  int positionDivisor = 10;
  
   // set up the 3pi, and wait for B button to be pressed
   initialize();
@@ -194,17 +193,17 @@ delay_ms(100);
     prev_position = position;
     position = line_position(sensors,minv,maxv);
  
-		// position = -2000 to 2000
-    delta = (100*position - prev_position)/10; // 4000/20 200
-    integral += position; // tracks long runningposition offset
-    offset = position/positionDivisor + delta/70 + integral/3000;
+// position = -2000 to 2000
+    delta = (10*position - 10*prev_position); 
+    integral += (position+prev_position)/2; // tracks long runningposition offset
+    offset = position/9 + delta/50 + integral/10000;
  
     if (run == 1) {
       short leftMotor = rotation + offset;
       short rightMotor = rotation - offset;
       short motorsMax = (offset < 0) ? rightMotor : leftMotor;
  
-    	leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
+     leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
  
       // truncation on negatives for safety
@@ -217,3 +216,4 @@ delay_ms(100);
     delay_ms(2);
   }
 }
+ 
