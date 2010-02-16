@@ -12,8 +12,8 @@ This program was modified from an example program from Pololu.
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
  
-#define MIN_MOTOR_SPEED -100
-#define MAX_MOTOR_SPEED 255
+#define MIN_MOTOR_SPEED 	-100
+#define MAX_MOTOR_SPEED 	255
  
 // A couple of simple tunes, stored in program space.
 const char welcome[] PROGMEM = ">g32>>c32";
@@ -155,7 +155,7 @@ int main() {
   long integral = 0;
   int delta = 0;
   long offset = 0;
-  long rotation = 140;
+  long rotation = 155;
   int i;
   int positionDivisor = 5;
  
@@ -197,7 +197,7 @@ delay_ms(100);
 		// position = -2000 to 2000
     delta = (100*position - prev_position)/10; // 4000/20 200
     integral += position; // tracks long runningposition offset
-    offset = position/positionDivisor + delta/30 + integral/4000;
+    offset = position/positionDivisor + delta/70 + integral/3000;
  
     if (run == 1) {
       short leftMotor = rotation + offset;
