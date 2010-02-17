@@ -11,7 +11,7 @@ This program was modified from an example program from Pololu.
 // ATmega168 has 16k of program space compared to 1k of RAM, so large
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
-#define MIN_MOTOR_SPEED -100
+#define MIN_MOTOR_SPEED 0
 #define MAX_MOTOR_SPEED 255
  
 // A couple of simple tunes, stored in program space.
@@ -152,11 +152,12 @@ int main() {
   long position = 0;
   long prev_position = 0;
   long integral = 0;
-  int delta = 0;
+  int derivative = 0;
   long offset = 0;
   long rotation = 180;
   int i;
-  int positionDivisor = 10;
+  unsigned long prevTime = 0;
+ 	unsigned long deltaTime = 0;
  
   // set up the 3pi, and wait for B button to be pressed
   initialize();
@@ -168,21 +169,25 @@ int main() {
  
   // display calibrated sensor values as a bar graph.
   while(1) {
-// button press adjustments (RFCT)
+	
+	// button press adjustments (RFCT)
     if (button_is_pressed(BUTTON_A)) {
-play_from_program_space(beep_button_top);
-rotation -= 5;
-delay_ms(100);
-} else if (button_is_pressed(BUTTON_B)) {
-play_from_program_space(beep_button_middle);
-run = 1-run;
-delay_ms(200);
-} else if (button_is_pressed(BUTTON_C)) {
-play_from_program_space(beep_button_bottom);
-rotation += 5;
-delay_ms(100);
-}
+			play_from_program_space(beep_button_top);
+			rotation -= 5;
+			delay_ms(100);
+	} else if (button_is_pressed(BUTTON_B)) {
+			play_from_program_space(beep_button_middle);
+			run = 1-run;
+			delay_ms(200);
+	} else if (button_is_pressed(BUTTON_C)) {
+			play_from_program_space(beep_button_bottom);
+			rotation += 5;
+			delay_ms(100);
+	}
  
+ 		//get the first time reading
+ 		prevTime = millis();	
+ 		
     // read the line sensor values
     read_line_sensors(sensors,IR_EMITTERS_ON);
     // update minv and mav values,
@@ -192,18 +197,24 @@ delay_ms(100);
     // compute line positon
     prev_position = position;
     position = line_position(sensors,minv,maxv);
+ 	
+ 		// offset needs deltaTime. add to deltaTime the amount of time it took 
+ 		// to go from the first time reading till now.
+ 		// we need to incorporate the past loop's run-time in addition to the 
+ 		// part of the while loop traversed so far.
+ 		deltaTime = deltaTime + millis() - prevTime;
  
-// position = -2000 to 2000
-    delta = (10*position - 10*prev_position); 
-    integral += (position+prev_position)/2; // tracks long runningposition offset
-    offset = position/6 + delta/10 + integral/10000;
+		// position = -2000 to 2000
+    derivative = (position - prev_position)/deltaTime; 
+    integral += (position+prev_position)/2 * deltaTime; // tracks long runningposition offset
+    offset = position/6 + delta/250 + integral/10000;
  
     if (run == 1) {
       short leftMotor = rotation + offset;
       short rightMotor = rotation - offset;
       short motorsMax = (offset < 0) ? rightMotor : leftMotor;
  
-     leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
+     	leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
  
       // truncation on negatives for safety
@@ -212,8 +223,10 @@ delay_ms(100);
  
       set_motors(leftMotor, rightMotor);
     }
- 
-    delay_ms(2);
+ 		
+ 		// new deltaTime
+		deltaTime = millis() - prevTime;
+		
   }
 }
  
