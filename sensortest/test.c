@@ -170,6 +170,7 @@ int main() {
   while(1) {
 	
 	// button press adjustments (RFCT)
+<<<<<<< HEAD
   if (button_is_pressed(BUTTON_A)) {
     play_from_program_space(beep_button_top);
     rotation -= 5;
