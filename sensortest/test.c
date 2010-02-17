@@ -105,12 +105,13 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
   return sum/count; // between -2000 and +2000
 }
 
-void return_to_track(prev_position, unsigned int *minv, unsigned int *maxv){
+void return_to_track(int prev_position, unsigned int *minv, unsigned int *maxv){
   unsigned int sensors[5];
   while(off_track == 1){
     read_line_sensors(sensors,IR_EMITTERS_ON); // we don't update bounds here
     int i;
     for(i = 0; i < 5; i++){       // sensors.each
+      int min = minv[i];
       long dist = (100*((long)sensors[i]-min))/((long)maxv[i]-min); //0-100
       if(dist > 50) {
         off_track = 0;
@@ -118,11 +119,11 @@ void return_to_track(prev_position, unsigned int *minv, unsigned int *maxv){
       }
     }
     if(prev_position > 0){        // line is to the right
-      set_motors(222,99);        // right turn
+      set_motors(255,55);        // right turn
     else if (prev_position < 0) { // line is to the left
-      set_motors(99,222);        // left turn
+      set_motors(55,255);        // left turn
     }
-    delay_ms(4); // go ahead and run a moment while searching for the line
+    delay_ms(3); // go ahead and run a moment while searching for the line
   }
   return; // Should actually never get here due to shortcut
 }
@@ -213,7 +214,7 @@ int main() {
   prev_position = position;         // compute line positon
   position = line_position(sensors, minv, maxv);
 
-  if(off_track == 1)&&(run == 1){               // If not on a line
+  if((off_track == 1)&&(run == 1)){               // If not on a line
     return_to_track(prev_position, minv, maxv); // Get back on
     read_line_sensors(sensors, IR_EMITTERS_ON); // new readings once on line
     update_bounds(sensors, minv, maxv);         // update bounds.
