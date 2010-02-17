@@ -75,7 +75,7 @@ void display_bars(const unsigned int *s, const unsigned int *minv, const unsigne
   for (i=0;i<5;i++) {
     int c = ((int)s[i]-(int)minv[i])*9/((int)maxv[i]-(int)minv[i]);
     c = (c<0)?0:(c>8)?8:c;
-    // if (i==0) {print_long(s[0]); print_long(c); }
+    // if (i==0) { print_long(s[0]); print_long(c); }
     print_character(display_characters[c]);
   }
 }
@@ -95,16 +95,37 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
   long sum = 0;
   long count = 0;
   int adjustment[5] = {-2000, -1000, 1, 1000, 2000};
-  int off_track = 1;
+  off_track = 1;
   for (i = 0; i < 5; i++) {
-    long min = (long)minv[i];
-    long dist = (100*((long)s[i]-min))/((long)maxv[i]-min); //0-100
+    long min = (long)minv[i];   // tiny efficiency gain here
+    long dist = (100*((long)s[i]-min))/((long)maxv[i]-min); // 0-100
     if(dist > 50){ off_track = 0; }
-    sum += dist*adjustment[i]; //0-100's weighted by adjustment
-    count += dist; //sum of 0-100's
+    sum += dist*adjustment[i];  // 0-100's weighted by adjustment
+    count += dist;              // sum of 0-100's
   }
-  
-  return sum/count; //between -2000 and +2000
+  return sum/count; // between -2000 and +2000
+}
+
+void return_to_track(prev_position, unsigned int *minv, unsigned int *maxv){
+  unsigned int sensors[5];
+  while(off_track == 1){
+    read_line_sensors(sensors,IR_EMITTERS_ON); // we don't update bounds here
+    int i;
+    for(i = 0; i < 5; i++){       // sensors.each
+      long dist = (100*((long)sensors[i]-min))/((long)maxv[i]-min); //0-100
+      if(dist > 50) {
+        off_track = 0;
+        return;
+      }
+    }
+    if(prev_position > 0){        // line is to the right
+      set_motors(222,111);        // right turn
+    else if (prev_position < 0) { // line is to the left
+      set_motors(111,222);        // left turn
+    }
+    delay_ms(4); // go ahead and run a moment while searching for the line
+  }
+  return; // Should actually never get here due to shortcut
 }
  
 // Displays the battery voltage.
@@ -184,19 +205,24 @@ int main() {
       delay_ms(100);
     }
     // read the line sensor values
-    read_line_sensors(sensors,IR_EMITTERS_ON);
+    read_line_sensors(sensors, IR_EMITTERS_ON);
     // update minv and mav values,
     // and put normalized values in v
-    update_bounds(sensors,minv,maxv);
+    update_bounds(sensors, minv, maxv);
 
     // compute line positon
     prev_position = position;
-    position = line_position(sensors,minv,maxv);
+    position = line_position(sensors, minv, maxv);
+    if(off_track == 1){ // If not on a line
+      return_to_track(prev_position, minv, maxv); // Get back on
+      read_line_sensors(sensors, IR_EMITTERS_ON); // new readings once on line
+      update_bounds(sensors, minv, maxv);         // update bounds.
+    }
 
     // position = -2000 to 2000
-    delta = (100*position - prev_position)/10; // 4000/20 200
+    delta = (10*position - 10*prev_position);
     integral += position; // tracks long runningposition offset
-    offset = position/positionDivisor + delta/30 + integral/4000;
+    offset = position/positionDivisor + delta/30 + integral/10000;
 
     if (run == 1) {
       short leftMotor = rotation + offset;
@@ -212,6 +238,6 @@ int main() {
 
       set_motors(leftMotor, rightMotor);
     }
-  //delay_ms(2);
+    delay_ms(2);
   }
 }
