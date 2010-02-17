@@ -118,9 +118,9 @@ void return_to_track(prev_position, unsigned int *minv, unsigned int *maxv){
       }
     }
     if(prev_position > 0){        // line is to the right
-      set_motors(222,111);        // right turn
+      set_motors(222,99);        // right turn
     else if (prev_position < 0) { // line is to the left
-      set_motors(111,222);        // left turn
+      set_motors(99,222);        // left turn
     }
     delay_ms(4); // go ahead and run a moment while searching for the line
   }
@@ -230,7 +230,7 @@ int main() {
   offset = position/6 + derivative/250 + integral/10000;
 
   if(run == 1){
-    short leftMotor = rotation + offset;
+    /*short leftMotor = rotation + offset;
     short rightMotor = rotation - offset;
     short motorsMax = (offset < 0) ? rightMotor : leftMotor;
     leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
@@ -239,7 +239,8 @@ int main() {
     leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
     rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
 
-    set_motors(leftMotor, rightMotor);
+    set_motors(leftMotor, rightMotor);*/
+   set_motors(140, 140); //THIS IS FOR TESTING THE LINE RETURNER ONLY
   }
   // new deltaTime
   deltaTime = millis() - prevTime;
