@@ -214,11 +214,11 @@ int main() {
     prev_position = position;         // compute line positon
     position = line_position(sensors, minv, maxv);
 
-    if((off_track == 1)&&(run == 1)){               // If not on a line
+    /*if((off_track == 1)&&(run == 1)){               // If not on a line
       return_to_track(prev_position, minv, maxv); // Get back on
       read_line_sensors(sensors, IR_EMITTERS_ON); // new readings once on line
       update_bounds(sensors, minv, maxv);         // update bounds.
-    }
+    }*/ // TURNED OFF FOR TIME TRIAL
 
     // offset needs deltaTime. add to deltaTime the amount of time it took 
     // to go from the first time reading till now.
@@ -244,13 +244,8 @@ int main() {
       rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
       set_motors(leftMotor, rightMotor);*/
     }
+    delay_ms(3);
     // new deltaTime
     deltaTime = millis() - prevTime;
   }
-/*  clear(); //MERGE NOTE: This may be misplaced
-  print_long(position);
-  lcd_goto_xy(0,1);
-  display_bars(sensors,minv,maxv);
-  delay_ms(10);
-*/
 }
