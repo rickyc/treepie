@@ -167,7 +167,9 @@ void initialize() {
 // must have a main() function defined somewhere.
 int main() {
   unsigned int sensors[5]; // global array to hold sensor values
-  unsigned int minv[5], maxv[5]; // global arrays to hold min and max sensor values for calibration
+  unsigned int minv[5] = {65000, 65000, 65000, 65000, 65000};
+  unsigned int maxv[5] = {0};
+  // global arrays to hold min and max sensor values for calibration
  
   // line position relative to center
   long position = 0;
@@ -184,8 +186,6 @@ int main() {
   initialize();
  
   read_line_sensors(sensors,IR_EMITTERS_ON);
-  for (i=0; i<5; i++) { minv[i] = maxv[i] = sensors[i]; }
- 
   dance(sensors, minv, maxv); // sensor calibration
  
   // display calibrated sensor values as a bar graph.
@@ -218,6 +218,7 @@ int main() {
     read_line_sensors(sensors, IR_EMITTERS_ON); // new readings once on line
     update_bounds(sensors, minv, maxv);         // update bounds.
   }
+
   // offset needs deltaTime. add to deltaTime the amount of time it took 
   // to go from the first time reading till now.
   // we need to incorporate the past loop's run-time in addition to the 
@@ -227,19 +228,28 @@ int main() {
   // position = -2000 to 2000
   derivative = (position - prev_position)/deltaTime; 
   integral += (position+prev_position)/2 * deltaTime; // tracks long runningposition offset
-  offset = position/6 + derivative/250 + integral/10000;
-
-  if(run == 1){
+  offset = 7*position + derivative*40 + integral/300;
+ 
+  if (run == 1) {
     short leftMotor = rotation + offset;
     short rightMotor = rotation - offset;
-    short motorsMax = (offset < 0) ? rightMotor : leftMotor;
+    // short motorsMax = (offset < 0) ? rightMotor : leftMotor;
+
     leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
     rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
+
     // truncation on negatives for safety
     leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
     rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
 
     set_motors(leftMotor, rightMotor);
+  }
+/*  clear();
+  print_long(position);
+  lcd_goto_xy(0,1);
+  display_bars(sensors,minv,maxv);
+  delay_ms(10);
+*/
   }
   // new deltaTime
   deltaTime = millis() - prevTime;
