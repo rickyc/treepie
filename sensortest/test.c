@@ -223,15 +223,20 @@ void return_to_track(int prev_position, unsigned int *minv, unsigned int *maxv){
 			delay_ms(3);
 			// new deltaTime
 			deltaTime = millis() - prevTime;
+	
+			// debug code
+			lcd_goto_xy(0,1);
+			print_long(xPos);
+			lcd_goto_xy(0,2);
+			print_long(yPos);
+			//char display[8];
+			//sprintf(display,"%i %i",xPos,yPos);
+			//print(display);
+			clear();
 		} while(!offTrack(sensors,minv,maxv));
 
 		// go back to home
 
-		//asdf 
-		clear(); //MERGE NOTE: This may be misplaced
-		print_long(xPos);
-		lcd_goto_xy(0,1);
-		//  display_bars(sensors,minv,maxv);
 		delay_ms(10);
 		return 0;
 	}
