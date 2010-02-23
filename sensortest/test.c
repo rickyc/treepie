@@ -242,7 +242,7 @@ int main() {
       // truncation on negatives for safety
       leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
-      set_motors(leftMotor, rightMotor);*/
+      set_motors(leftMotor, rightMotor);
     }
     delay_ms(3);
     // new deltaTime
