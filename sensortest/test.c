@@ -25,7 +25,6 @@ const char timer_tick[] PROGMEM = "!v8>>c32";
 
 int speed = 100; // speed of the robot
 int run = 0; // if =1 run the robot, if =0 stop
-int off_track = 0; // if ==1, robot is off track
 
 // Introductory messages. The "PROGMEM" identifier
 // causes the data to go into program space.
@@ -95,11 +94,9 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	long sum = 0;
 	long count = 0;
 	int adjustment[5] = {-2000, -1000, 1, 1000, 2000};
-	off_track = 1;
 	for (i = 0; i < 5; i++) {
 		long min = (long)minv[i];   // tiny efficiency gain here
 		long dist = (100*((long)s[i]-min))/((long)maxv[i]-min); // 0-100
-		if(dist > 50){ off_track = 0; }
 		sum += dist*adjustment[i];  // 0-100's weighted by adjustment
 		count += dist;              // sum of 0-100's
 	}
@@ -140,12 +137,25 @@ void return_to_track(int prev_position, unsigned int *minv, unsigned int *maxv){
 		set_motors(0,0);
 	}
 
+	void idle() {
+		// Display calibrated values as a bar graph.
+		while(!button_is_pressed(BUTTON_B)) {
+			unsigned int position = read_line(sensors,IR_EMITTERS_ON);
+			clear();
+			print_long(position);
+			lcd_goto_xy(0,1);
+			display_readings(sensors);
+			delay_ms(100);
+		}
+		
+		run = 1;
+		wait_for_button_release(BUTTON_B);
+		clear();
+	}
+
 	// Initializes the 3pi, displays a welcome message, calibrates, and
 	// plays the initial music.
 	void initialize() {
-		// This must be called at the beginning of 3pi code, to set up the
-		// sensors. We use a value of 2000 for the timeout, which
-		// corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
 		pololu_3pi_init(2000);
 		load_custom_characters(); // load the custom characters
 		print_from_program_space(robotName);
@@ -177,6 +187,7 @@ void return_to_track(int prev_position, unsigned int *minv, unsigned int *maxv){
 		// set up the 3pi, and wait for B button to be pressed
 		initialize();
 
+		idle();
 		read_line_sensors(sensors,IR_EMITTERS_ON);
 		dance(sensors, minv, maxv); // sensor calibration
 
@@ -235,7 +246,8 @@ void return_to_track(int prev_position, unsigned int *minv, unsigned int *maxv){
 			clear();
 		} while(!offTrack(sensors,minv,maxv));
 
-		// go back to home
+		// go back home
+		set_motors(128,128); // direction reverses, this one needs updating
 
 		delay_ms(10);
 		return 0;
