@@ -11,6 +11,7 @@ This program was modified from an example program from Pololu.
 // ATmega168 has 16k of program space compared to 1k of RAM, so large
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
+#include "3pi_kinematics.h"
 #define MIN_MOTOR_SPEED 0
 #define MAX_MOTOR_SPEED 255
  
@@ -105,27 +106,15 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
   return sum/count; // between -2000 and +2000
 }
 
-void return_to_track(int prev_position, unsigned int *minv, unsigned int *maxv){
-  unsigned int sensors[5];
-  while(off_track == 1){
-    read_line_sensors(sensors, IR_EMITTERS_ON); // we don't update bounds here
-    int i;
-    for(i = 0; i < 5; i++){       // sensors.each
+int offTrack(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+int i;	
+	for(i = 0; i < 5; i++){       // sensors.each
       int min = minv[i];
-      long dist = (100*((long)sensors[i]-min))/((long)maxv[i]-min); //0-100
-      if(dist > 50){
-        off_track = 0;
-        return;
-      }
-    }
-    if(prev_position > 0){        // line is to the right
-      set_motors(255,55);        // right turn
-    } else if (prev_position < 0) { // line is to the left
-      set_motors(55,255);        // left turn
-    }
-    delay_ms(3); // go ahead and run a moment while searching for the line
+      long dist = (100*((long)s[i]-min))/((long)maxv[i]-min); //0-100
+      if(dist > 50)
+        return 0;
   }
-  return; // Should actually never get here due to shortcut
+  return 1;
 }
  
 // Displays the battery voltage.
@@ -175,11 +164,13 @@ int main() {
   // line position relative to center
   long position = 0;
   long prev_position = 0;
-  long integral = 0;
-  int derivative = 0;
   long offset = 0;
-  long rotation = 180;
-  int i;
+  long rotation = 20;
+  long xPos = 0;
+  long yPos = 0;
+  long oldTheta = 0;
+  long newTheta = 0;
+  long alpha = 0;
   unsigned long prevTime = 0;
  	unsigned long deltaTime = 0;
  
@@ -190,21 +181,13 @@ int main() {
   dance(sensors, minv, maxv); // sensor calibration
  
   // display calibrated sensor values as a bar graph.
-  while(1) {
+  do {
     // button press adjustments (RFCT)
-    if (button_is_pressed(BUTTON_A)) {
-      play_from_program_space(beep_button_top);
-      rotation -= 5;
-      delay_ms(100);
-    } else if (button_is_pressed(BUTTON_B)) {
+    if (button_is_pressed(BUTTON_B)) {
       play_from_program_space(beep_button_middle);
       run = 1-run;
       delay_ms(200);
-    } else if (button_is_pressed(BUTTON_C)) {
-      play_from_program_space(beep_button_bottom);
-      rotation += 5;
-      delay_ms(100);
-    }
+    } 
 
     prevTime = millis();  //get the first time reading 		
     // read the line sensor values
@@ -214,43 +197,41 @@ int main() {
     prev_position = position;         // compute line positon
     position = line_position(sensors, minv, maxv);
 
-    if((off_track == 1)&&(run == 1)){               // If not on a line
-      return_to_track(prev_position, minv, maxv); // Get back on
-      read_line_sensors(sensors, IR_EMITTERS_ON); // new readings once on line
-      update_bounds(sensors, minv, maxv);         // update bounds.
-    }
 
     // offset needs deltaTime. add to deltaTime the amount of time it took 
     // to go from the first time reading till now.
     // we need to incorporate the past loop's run-time in addition to the 
     // part of the while loop traversed so far.
     deltaTime = deltaTime + millis() - prevTime;
-
-    // position = -2000 to 2000
-    derivative = (position - prev_position)/deltaTime; 
-    integral += (position+prev_position)/2 * deltaTime; // tracks long runningposition offset
-    offset = 7*position + derivative*40 + integral/300;
+    
+    offset = position;
    
     if (run == 1) {
-      short leftMotor = rotation + offset;
-      short rightMotor = rotation - offset;
-      // short motorsMax = (offset < 0) ? rightMotor : leftMotor;
-
-      leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
-      rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
-
-      // truncation on negatives for safety
-      leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
-      rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
-      set_motors(leftMotor, rightMotor);*/
+      int leftMotor = rotation + offset;
+      int rightMotor = rotation - offset;
+      
+      newTheta = oldTheta + (long)(motor2angle(leftMotor, rightMotor) * deltaTime);
+      
+      alpha = (oldTheta + newTheta)/2;
+      
+      xPos += (long)Sin(alpha)*deltaTime*motor2speed(rotation);
+      yPos += (long)Cos(alpha)*deltaTime*motor2speed(rotation);
+      
+      oldTheta = newTheta;
+      
+      set_motors(leftMotor, rightMotor);
     }
     // new deltaTime
     deltaTime = millis() - prevTime;
-  }
-/*  clear(); //MERGE NOTE: This may be misplaced
-  print_long(position);
+  } while(!offTrack(sensors,minv,maxv));
+  
+  // go back to home
+ 
+ //asdf 
+  clear(); //MERGE NOTE: This may be misplaced
+  print_long(xPos);
   lcd_goto_xy(0,1);
-  display_bars(sensors,minv,maxv);
+//  display_bars(sensors,minv,maxv);
   delay_ms(10);
-*/
+	return 0;
 }
