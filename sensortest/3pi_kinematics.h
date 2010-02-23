@@ -166,4 +166,7 @@ long motor2angle_inplace(int v) {
   }
 }
 
+<<<<<<< HEAD:sensortest/3pi_kinematics.h
 
+=======
+>>>>>>> ee43dea18d37784212de6a636b6aaa0965faa70a:sensortest/3pi_kinematics.h
