@@ -1,7 +1,7 @@
 /*
 	 3PI template code for NYU "Intro to Robotics" course. Yann LeCun, 02/2010.
 	 This program was modified from an example program from Pololu.
-	 */
+*/
 
 // The 3pi include file must be at the beginning of any program that
 // uses the Pololu AVR library and 3pi.
@@ -11,6 +11,7 @@
 // ATmega168 has 16k of program space compared to 1k of RAM, so large
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
+#include "3pi_kinematics.h"
 #define MIN_MOTOR_SPEED 0
 #define MAX_MOTOR_SPEED 255
 
@@ -106,145 +107,131 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 }
 
 void return_to_track(int prev_position, unsigned int *minv, unsigned int *maxv){
-	unsigned int sensors[5];
-	while(off_track == 1){
-		read_line_sensors(sensors, IR_EMITTERS_ON); // we don't update bounds here
-		int i;
+	int offTrack(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+		int i;	
 		for(i = 0; i < 5; i++){       // sensors.each
 			int min = minv[i];
-			long dist = (100*((long)sensors[i]-min))/((long)maxv[i]-min); //0-100
-			if(dist > 50){
-				off_track = 0;
-				return;
+			long dist = (100*((long)s[i]-min))/((long)maxv[i]-min); //0-100
+			if(dist > 50)
+				return 0;
+		}
+		return 1;
+	}
+
+	// Displays the battery voltage.
+	void battery_reading() {
+		unsigned int bat = read_battery_millivolts();
+		print_long(bat);
+		print("mV");
+		delay_ms(250);
+	}
+
+	// Make a little dance: Turn left and right
+	void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+		int counter;
+		for(counter=0;counter<80;counter++) {
+			if(counter < 20 || counter >= 60) { set_motors(40,-40);
+			} else { set_motors(-40,40); }
+			// Since our counter runs to 80, the total delay will be 80*20 = 1600 ms.
+			read_line_sensors(s, IR_EMITTERS_ON);
+			update_bounds(s,minv,maxv);
+			delay_ms(20);
+		}
+		set_motors(0,0);
+	}
+
+	// Initializes the 3pi, displays a welcome message, calibrates, and
+	// plays the initial music.
+	void initialize() {
+		// This must be called at the beginning of 3pi code, to set up the
+		// sensors. We use a value of 2000 for the timeout, which
+		// corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
+		pololu_3pi_init(2000);
+		load_custom_characters(); // load the custom characters
+		print_from_program_space(robotName);
+		lcd_goto_xy(0,1);
+		print("Press B");
+	}
+
+	// This is the main function, where the code starts. All C programs
+	// must have a main() function defined somewhere.
+	int main() {
+		unsigned int sensors[5]; // global array to hold sensor values
+		unsigned int minv[5] = {65000, 65000, 65000, 65000, 65000};
+		unsigned int maxv[5] = {0};
+		// global arrays to hold min and max sensor values for calibration
+
+		// line position relative to center
+		long position = 0;
+		long prev_position = 0;
+		long offset = 0;
+		long rotation = 20;
+		long xPos = 0;
+		long yPos = 0;
+		long oldTheta = 0;
+		long newTheta = 0;
+		long alpha = 0;
+		unsigned long prevTime = 0;
+		unsigned long deltaTime = 0;
+
+		// set up the 3pi, and wait for B button to be pressed
+		initialize();
+
+		read_line_sensors(sensors,IR_EMITTERS_ON);
+		dance(sensors, minv, maxv); // sensor calibration
+
+		// display calibrated sensor values as a bar graph.
+		do {
+			// button press adjustments (RFCT)
+			if (button_is_pressed(BUTTON_B)) {
+				play_from_program_space(beep_button_middle);
+				run = 1-run;
+				delay_ms(200);
+			} 
+
+			prevTime = millis();  //get the first time reading 		
+			// read the line sensor values
+			read_line_sensors(sensors, IR_EMITTERS_ON);
+			// update minv and mav values and put normalized values in v
+			update_bounds(sensors, minv, maxv);
+			prev_position = position;         // compute line positon
+			position = line_position(sensors, minv, maxv);
+
+			// offset needs deltaTime. add to deltaTime the amount of time it took 
+			// to go from the first time reading till now.
+			// we need to incorporate the past loop's run-time in addition to the 
+			// part of the while loop traversed so far.
+			deltaTime = deltaTime + millis() - prevTime;
+
+			offset = position;
+
+			if (run == 1) {
+				int leftMotor = rotation + offset;
+				int rightMotor = rotation - offset;
+
+				newTheta = oldTheta + (long)(motor2angle(leftMotor, rightMotor) * deltaTime);
+
+				alpha = (oldTheta + newTheta)/2;
+
+				xPos += (long)Sin(alpha)*deltaTime*motor2speed(rotation);
+				yPos += (long)Cos(alpha)*deltaTime*motor2speed(rotation);
+
+				oldTheta = newTheta;
+
+				set_motors(leftMotor, rightMotor);
 			}
-		}
-		if(prev_position > 0){        // line is to the right
-			set_motors(255,55);        // right turn
-		} else if (prev_position < 0) { // line is to the left
-			set_motors(55,255);        // left turn
-		}
-		delay_ms(3); // go ahead and run a moment while searching for the line
+			delay_ms(3);
+			// new deltaTime
+			deltaTime = millis() - prevTime;
+		} while(!offTrack(sensors,minv,maxv));
+
+		// go back to home
+
+		//asdf 
+		clear(); //MERGE NOTE: This may be misplaced
+		print_long(xPos);
+		lcd_goto_xy(0,1);
+		//  display_bars(sensors,minv,maxv);
+		delay_ms(10);
+		return 0;
 	}
-	return; // Should actually never get here due to shortcut
-}
-
-// Displays the battery voltage.
-void battery_reading() {
-	unsigned int bat = read_battery_millivolts();
-	print_long(bat);
-	print("mV");
-	delay_ms(250);
-}
-
-// Make a little dance: Turn left and right
-void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
-	int counter;
-	for(counter=0;counter<80;counter++) {
-		if(counter < 20 || counter >= 60) { set_motors(40,-40);
-		} else { set_motors(-40,40); }
-		// Since our counter runs to 80, the total delay will be 80*20 = 1600 ms.
-		read_line_sensors(s, IR_EMITTERS_ON);
-		update_bounds(s,minv,maxv);
-		delay_ms(20);
-	}
-	set_motors(0,0);
-}
-
-// Initializes the 3pi, displays a welcome message, calibrates, and
-// plays the initial music.
-void initialize() {
-	// This must be called at the beginning of 3pi code, to set up the
-	// sensors. We use a value of 2000 for the timeout, which
-	// corresponds to 2000*0.4 us = 0.8 ms on our 20 MHz processor.
-	pololu_3pi_init(2000);
-	load_custom_characters(); // load the custom characters
-	print_from_program_space(robotName);
-	lcd_goto_xy(0,1);
-	print("Press B");
-}
-
-// This is the main function, where the code starts. All C programs
-// must have a main() function defined somewhere.
-int main() {
-  unsigned int sensors[5]; // global array to hold sensor values
-  unsigned int minv[5] = {65000, 65000, 65000, 65000, 65000};
-  unsigned int maxv[5] = {0};
-  // global arrays to hold min and max sensor values for calibration
- 
-  // line position relative to center
-  long position = 0;
-  long prev_position = 0;
-  long integral = 0;
-  int derivative = 0;
-  long offset = 0;
-  long rotation = 180;
-  int i;
-  unsigned long prevTime = 0;
- 	unsigned long deltaTime = 0;
- 
-  // set up the 3pi, and wait for B button to be pressed
-  initialize();
- 
-  read_line_sensors(sensors,IR_EMITTERS_ON);
-  dance(sensors, minv, maxv); // sensor calibration
- 
-  // display calibrated sensor values as a bar graph.
-  while(1) {
-    // button press adjustments (RFCT)
-    if (button_is_pressed(BUTTON_A)) {
-      play_from_program_space(beep_button_top);
-      rotation -= 5;
-      delay_ms(100);
-    } else if (button_is_pressed(BUTTON_B)) {
-      play_from_program_space(beep_button_middle);
-      run = 1-run;
-      delay_ms(200);
-    } else if (button_is_pressed(BUTTON_C)) {
-      play_from_program_space(beep_button_bottom);
-      rotation += 5;
-      delay_ms(100);
-    }
-
-    prevTime = millis();  //get the first time reading 		
-    // read the line sensor values
-    read_line_sensors(sensors, IR_EMITTERS_ON);
-    // update minv and mav values and put normalized values in v
-    update_bounds(sensors, minv, maxv);
-    prev_position = position;         // compute line positon
-    position = line_position(sensors, minv, maxv);
-
-    /*if((off_track == 1)&&(run == 1)){               // If not on a line
-      return_to_track(prev_position, minv, maxv); // Get back on
-      read_line_sensors(sensors, IR_EMITTERS_ON); // new readings once on line
-      update_bounds(sensors, minv, maxv);         // update bounds.
-    }*/ // TURNED OFF FOR TIME TRIAL
-
-    // offset needs deltaTime. add to deltaTime the amount of time it took 
-    // to go from the first time reading till now.
-    // we need to incorporate the past loop's run-time in addition to the 
-    // part of the while loop traversed so far.
-    deltaTime = deltaTime + millis() - prevTime;
-
-    // position = -2000 to 2000
-    derivative = (position - prev_position)/deltaTime; 
-    integral += (position+prev_position)/2 * deltaTime; // tracks long runningposition offset
-    offset = 7*position + derivative*40 + integral/300;
-   
-    if (run == 1) {
-      short leftMotor = rotation + offset;
-      short rightMotor = rotation - offset;
-      // short motorsMax = (offset < 0) ? rightMotor : leftMotor;
-
-      leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
-      rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
-
-      // truncation on negatives for safety
-      leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
-      rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
-      set_motors(leftMotor, rightMotor);
-    }
-    delay_ms(3);
-    // new deltaTime
-    deltaTime = millis() - prevTime;
-  }
-}
