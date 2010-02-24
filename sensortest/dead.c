@@ -15,6 +15,11 @@
 #define MIN_MOTOR_SPEED 0
 #define MAX_MOTOR_SPEED 255
 
+// global arrays to hold min and max sensor values for calibration
+unsigned int sensors[5]; // global array to hold sensor values
+unsigned int minv[5] = {65000, 65000, 65000, 65000, 65000};
+unsigned int maxv[5] = {0};
+
 // A couple of simple tunes, stored in program space.
 const char welcome[] PROGMEM = ">g32>>c32";
 const char thank_you_music[] PROGMEM = ">>c32>g32";
@@ -103,7 +108,16 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	return sum/count; // between -2000 and +2000
 }
 
-	int offTrack(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+	int off_track(center_only) {
+    if(center_only){
+      int min = minv[2];
+      long dist = (100*((long)s[2]-min))/((long)maxv[2]-min);
+      if (dist > 50){
+        return 0;
+      } else {
+        return 1;
+      }
+    }
 		int i;	
 		for(i = 0; i < 5; i++){       // sensors.each
 			int min = minv[i];
@@ -123,20 +137,20 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	}
 
 	// Make a little dance: Turn left and right
-	void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+	void dance() {
 		int counter;
 		for(counter=0;counter<80;counter++) {
 			if(counter < 20 || counter >= 60) { set_motors(40,-40);
 			} else { set_motors(-40,40); }
 			// Since our counter runs to 80, the total delay will be 80*20 = 1600 ms.
-			read_line_sensors(s, IR_EMITTERS_ON);
-			update_bounds(s,minv,maxv);
+			read_line_sensors(sensors, IR_EMITTERS_ON);
+			update_bounds(sensors,minv,maxv);
 			delay_ms(20);
 		}
 		set_motors(0,0);
 	}
 
-	void idle(unsigned int *sensors) {
+	void idle() {
 		// Display calibrated values as a bar graph.
 		while(!button_is_pressed(BUTTON_B)) {
 			unsigned int position = read_line(sensors,IR_EMITTERS_ON);
@@ -165,11 +179,7 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	// This is the main function, where the code starts. All C programs
 	// must have a main() function defined somewhere.
 	int main() {
-		unsigned int sensors[5]; // global array to hold sensor values
-		unsigned int minv[5] = {65000, 65000, 65000, 65000, 65000};
-		unsigned int maxv[5] = {0};
-		// global arrays to hold min and max sensor values for calibration
-
+    
 		// line position relative to center
 		long position = 0;
 		long prev_position = 0;
@@ -243,8 +253,9 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 			//sprintf(display,"%i %i",xPos,yPos);
 			//print(display);
 			clear();
-		} while(!offTrack(sensors,minv,maxv));
-
+		} while(!off_track(0));
+    set_motors(0,0);
+    delay_ms(250); //A short pause while holding still after finishing the line.
 		// go back home
 		set_motors(128,128); // direction reverses, this one needs updating
 
