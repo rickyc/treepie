@@ -12,8 +12,6 @@
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
 #include "3pi_kinematics.h"
-#define MIN_MOTOR_SPEED 0
-#define MAX_MOTOR_SPEED 255
 
 // A couple of simple tunes, stored in program space.
 const char welcome[] PROGMEM = ">g32>>c32";
@@ -112,14 +110,6 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 				return 0;
 		}
 		return 1;
-	}
-
-	// Displays the battery voltage.
-	void battery_reading() {
-		unsigned int bat = read_battery_millivolts();
-		print_long(bat);
-		print("mV");
-		delay_ms(250);
 	}
 
 	// Make a little dance: Turn left and right
