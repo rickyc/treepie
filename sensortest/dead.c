@@ -161,14 +161,14 @@ void speed_calibrate(int first_speed, int second_speed){
   int first_mark_time = 0;
   int second_mark_time = 0;
   
-  while(!button_is_pressed(BUTTON_A)) {
-  	print("LOL");
-  }
-    wait_for_button_release(BUTTON_A);
-    delay_ms(100);
-  while(!button_is_pressed(BUTTON_A)) {
-  	print("LOL2");
-  }
+	while(!button_is_pressed(BUTTON_A)) {
+					print("hello");
+	}
+	wait_for_button_release(BUTTON_A);
+	delay_ms(100);
+	while(!button_is_pressed(BUTTON_A)) {
+					print("second test");
+	}
     wait_for_button_release(BUTTON_A);
   set_motors(first_speed, first_speed);
   while(1){
@@ -288,6 +288,8 @@ int main() {
   long alpha = 0;
   unsigned long prevTime = 0;
   unsigned long deltaTime = 0;
+	int leftMotor = 0;
+	int rightMotor = 0;
 
   // set up the 3pi, and wait for B button to be pressed
   initialize();
@@ -324,11 +326,14 @@ int main() {
     offset = position;
 
     if (run == 1) {
-      int leftMotor = rotation + offset;
-      int rightMotor = rotation - offset;
+      leftMotor = rotation + offset;
+      rightMotor = rotation - offset;
 
       newTheta = oldTheta + (long)(motor2angle(leftMotor, rightMotor) * deltaTime);
-
+			
+			if (newTheta > 360) 
+				newTheta -= 360;
+ 		
       alpha = (oldTheta + newTheta)/2;
 
       xPos += (long)Sin(alpha)*deltaTime*motor2speed(rotation);
@@ -352,7 +357,23 @@ int main() {
     //print(display);
     clear();
   } while(!off_track(0));
-  
+ 
+	// now i am off track
+	// return to origin
+	// we are going to need to stop motors
+	
+	int originTheta = oldTheta;
+	xPos  = xPos/1000;
+	yPos = yPos/1000;
+	
+	deltaTime = millis();
+	
+	set_motors(0, 20);
+	while (originTheta > oldTheta) {
+		originTheta -= motor2speed(rotation)*deltaTime();
+	}
+		
+
   set_motors(0,0);
   delay_ms(250); //A short pause while holding still after finishing the line.
   // go back home
