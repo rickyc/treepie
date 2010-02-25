@@ -12,8 +12,6 @@
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
 #include "3pi_kinematics.h"
-#define MIN_MOTOR_SPEED 0
-#define MAX_MOTOR_SPEED 255
 
 // global arrays to hold min and max sensor values for calibration
 unsigned int sensors[5]; // global array to hold sensor values
@@ -258,8 +256,6 @@ void dance() {
   set_motors(0,0);
 }
 
-
-
 // Initializes the 3pi, displays a welcome message, calibrates, and
 // plays the initial music.
 void initialize() {
@@ -424,9 +420,7 @@ int main() {
 		deltaTime = millis() - deltaTime;
 	}
 	set_motors(0,0);
-	delay_ms(250);
-  	
-
-  delay_ms(10);
+  delay_ms(250)
+  //et phone home
   return 0;
 }
