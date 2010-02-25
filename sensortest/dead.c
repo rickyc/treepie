@@ -13,6 +13,11 @@
 #include <avr/pgmspace.h>
 #include "3pi_kinematics.h"
 
+// global arrays to hold min and max sensor values for calibration
+unsigned int sensors[5]; // global array to hold sensor values
+unsigned int minv[5] = {65000, 65000, 65000, 65000, 65000};
+unsigned int maxv[5] = {0};
+
 // A couple of simple tunes, stored in program space.
 const char welcome[] PROGMEM = ">g32>>c32";
 const char thank_you_music[] PROGMEM = ">>c32>g32";
@@ -30,6 +35,22 @@ const char robotName[] PROGMEM = " TURTLE";
 
 char display_characters[9] = { ' ', 0, 1, 2, 3, 4, 5, 6, 255 };
 
+void idle() {
+  // Display calibrated values as a bar graph.
+  while(!button_is_pressed(BUTTON_B)) {
+    unsigned int position = read_line(sensors,IR_EMITTERS_ON);
+    //clear();
+    print_long(position);
+    lcd_goto_xy(0,1);
+    //display_readings(sensors);
+    delay_ms(100);
+  }
+  
+  run = 1;
+  wait_for_button_release(BUTTON_B);
+  //clear();
+  return;
+}
 // This function loads custom characters into the LCD. Up to 8
 // characters can be loaded; we use them for 6 levels of a bar graph
 // plus a back arrow and a musical note character.
@@ -101,143 +122,259 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	return sum/count; // between -2000 and +2000
 }
 
-	int offTrack(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
-		int i;	
-		for(i = 0; i < 5; i++){       // sensors.each
-			int min = minv[i];
-			long dist = (100*((long)s[i]-min))/((long)maxv[i]-min); //0-100
-			if(dist > 50)
-				return 0;
-		}
-		return 1;
-	}
+int off_track(center_only) {
+  if(center_only){
+    int min = minv[2];
+    long dist = (100*((long)sensors[2]-min))/((long)maxv[2]-min);
+    if (dist > 50){
+      return 0;
+    } else {
+      return 1;
+    }
+  }
+  int i;	
+  for(i = 0; i < 5; i++){       // sensors.each
+    int min = minv[i];
+    long dist = (100*((long)sensors[i]-min))/((long)maxv[i]-min); //0-100
+    if(dist > 50)
+      return 0;
+  }
+  return 1;
+}
+// Displays the battery voltage.
+void battery_reading() {
+  unsigned int bat = read_battery_millivolts();
+  print_long(bat);
+  print("mV");
+  delay_ms(250);
+}
 
-	// Make a little dance: Turn left and right
-	void dance(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
-		int counter;
-		for(counter=0;counter<80;counter++) {
-			if(counter < 20 || counter >= 60) { set_motors(40,-40);
-			} else { set_motors(-40,40); }
-			// Since our counter runs to 80, the total delay will be 80*20 = 1600 ms.
-			read_line_sensors(s, IR_EMITTERS_ON);
-			update_bounds(s,minv,maxv);
-			delay_ms(20);
-		}
-		set_motors(0,0);
-	}
+void speed_calibrate(int first_speed, int second_speed){
+  clear();
+  print("Speed Test");
+  lcd_goto_xy(0,1);
+  
+  int first_speed_time = 0;
+  int second_speed_time = 0;
+  int first_mark_time = 0;
+  int second_mark_time = 0;
+  
+	while(!button_is_pressed(BUTTON_A)) { }
+	wait_for_button_release(BUTTON_A);
+	delay_ms(100);
+  set_motors(first_speed, first_speed);
+  while(1){
+    read_line_sensors(sensors, IR_EMITTERS_ON);
+    if(off_track(0) && !first_mark_time){
+      first_mark_time = millis();
+    } else if(off_track(0) && !second_mark_time && (millis() - first_mark_time > 200)) {
+      second_mark_time = millis();
+    }
+    if (second_mark_time){
+      set_motors(0,0);
+      first_speed_time = second_mark_time - first_mark_time;
+      break;
+      //requires a user rotate here
+    }
+  }
+  while(!button_is_pressed(BUTTON_A)) {}
+  wait_for_button_release(BUTTON_A);
+ 
+  first_mark_time = second_mark_time = 0;
+  set_motors(second_speed, second_speed);
+  while(1){
+    read_line_sensors(sensors, IR_EMITTERS_ON);
+    if(off_track(0) && !first_mark_time){
+      first_mark_time = millis();
+    } else if(off_track(0) && !second_mark_time && (millis() - first_mark_time > 200)) {
+      second_mark_time = millis();
+    }
+    if (second_mark_time){
+      set_motors(0,0);
+      second_speed_time = second_mark_time - first_mark_time;
+      break;
+    }
+  }
+  //do some math to figure out the calibration coefficients from second_speed_time and first_speed_time
+  return;
+}
 
-	void idle(unsigned int *sensors) {
-		// Display calibrated values as a bar graph.
-		while(!button_is_pressed(BUTTON_B)) {
-			unsigned int position = read_line(sensors,IR_EMITTERS_ON);
-			clear();
-			print_long(position);
-			lcd_goto_xy(0,1);
-			//display_readings(sensors);
-			delay_ms(100);
-		}
-		
-		run = 1;
-		wait_for_button_release(BUTTON_B);
-		clear();
-	}
+void rotation_calibrate(int first_speed, int second_speed){
+  clear();
+  print("Rotation Test");
+  lcd_goto_xy(0,1);
+  
+  int first_rotation_time = 0;
+  int second_rotation_time = 0;
+  int first_cross_time = 0;
+  int second_cross_time = 0;
+  
+  while(!button_is_pressed(BUTTON_A)) {}
+  set_motors(first_speed, -first_speed);
+  while(1){
+    read_line_sensors(sensors, IR_EMITTERS_ON);
+    if(off_track(1) && !first_cross_time){
+      first_cross_time = millis();
+    } else if (off_track(1) && !second_cross_time && (millis() - first_cross_time > 200)){
+      second_cross_time = millis();
+    }
+    if(second_cross_time){
+      first_rotation_time = second_cross_time - first_cross_time;
+      break;
+    }
+  }
+  first_cross_time = second_cross_time = 0;
+  set_motors(second_speed,second_speed);
+  while(1){
+    read_line_sensors(sensors, IR_EMITTERS_ON);
+    if(off_track(1) && !first_cross_time){
+      first_cross_time = millis();
+    } else if (off_track(1) && !second_cross_time && (millis() - first_cross_time > 200)){
+      second_cross_time = millis();
+    }
+    if(second_cross_time){
+      set_motors(0,0);
+      second_rotation_time = second_cross_time - first_cross_time;
+      break;
+    }
+  }
+  //do calculation math here, then save the constants appropriately
+  return;
+}
 
-	// Initializes the 3pi, displays a welcome message, calibrates, and
-	// plays the initial music.
-	void initialize() {
-		pololu_3pi_init(2000);
-		load_custom_characters(); // load the custom characters
-		print_from_program_space(robotName);
-		lcd_goto_xy(0,1);
-		print("Press B");
-	}
+// Make a little dance: Turn left and right
+void dance() {
+  int counter;
+  for(counter=0;counter<80;counter++) {
+    if(counter < 20 || counter >= 60) { set_motors(40,-40);
+    } else { set_motors(-40,40); }
+    // Since our counter runs to 80, the total delay will be 80*20 = 1600 ms.
+    read_line_sensors(sensors, IR_EMITTERS_ON);
+    update_bounds(sensors,minv,maxv);
+    delay_ms(20);
+  }
+  set_motors(0,0);
+}
 
-	// This is the main function, where the code starts. All C programs
-	// must have a main() function defined somewhere.
-	int main() {
-		unsigned int sensors[5]; // global array to hold sensor values
-		unsigned int minv[5] = {65000, 65000, 65000, 65000, 65000};
-		unsigned int maxv[5] = {0};
-		// global arrays to hold min and max sensor values for calibration
 
-		// line position relative to center
-		long position = 0;
-		long prev_position = 0;
-		long offset = 0;
-		long rotation = 20;
-		long xPos = 0;
-		long yPos = 0;
-		long oldTheta = 0;
-		long newTheta = 0;
-		long alpha = 0;
-		unsigned long prevTime = 0;
-		unsigned long deltaTime = 0;
 
-		// set up the 3pi, and wait for B button to be pressed
-		initialize();
+// Initializes the 3pi, displays a welcome message, calibrates, and
+// plays the initial music.
+void initialize() {
+  pololu_3pi_init(2000);
+  load_custom_characters(); // load the custom characters
+  print_from_program_space(robotName);
+  lcd_goto_xy(0,1);
+  print("Press B");
+}
 
-		idle(sensors);
-		read_line_sensors(sensors,IR_EMITTERS_ON);
-		dance(sensors, minv, maxv); // sensor calibration
+// This is the main function, where the code starts. All C programs
+// must have a main() function defined somewhere.
+int main() {
+  
+  // line position relative to center
+  long position = 0;
+  long prev_position = 0;
+  long offset = 0;
+  long rotation = 20;
+  long xPos = 0;
+  long yPos = 0;
+  long oldTheta = 0;
+  long newTheta = 0;
+  long alpha = 0;
+  unsigned long prevTime = 0;
+  unsigned long deltaTime = 0;
+	int leftMotor = 0;
+	int rightMotor = 0;
 
-		// display calibrated sensor values as a bar graph.
-		do {
-			// button press adjustments (RFCT)
-			if (button_is_pressed(BUTTON_B)) {
-				play_from_program_space(beep_button_middle);
-				run = 1-run;
-				delay_ms(200);
-			} 
+  // set up the 3pi, and wait for B button to be pressed
+  initialize();
 
-			prevTime = millis();  //get the first time reading 		
-			// read the line sensor values
-			read_line_sensors(sensors, IR_EMITTERS_ON);
-			// update minv and mav values and put normalized values in v
-			update_bounds(sensors, minv, maxv);
-			prev_position = position;         // compute line positon
-			position = line_position(sensors, minv, maxv);
+  idle();
+  read_line_sensors(sensors,IR_EMITTERS_ON);
+  dance(); // sensor calibration
+  speed_calibrate(40,80);
+  rotation_calibrate(40,80);
 
-			// offset needs deltaTime. add to deltaTime the amount of time it took 
-			// to go from the first time reading till now.
-			// we need to incorporate the past loop's run-time in addition to the 
-			// part of the while loop traversed so far.
-			deltaTime = deltaTime + millis() - prevTime;
+  // display calibrated sensor values as a bar graph.
+  do {
+    // button press adjustments (RFCT)
+    if (button_is_pressed(BUTTON_B)) {
+      play_from_program_space(beep_button_middle);
+      run = 1-run;
+      delay_ms(200);
+    } 
 
-			offset = position;
+    prevTime = millis();  //get the first time reading 		
+    // read the line sensor values
+    read_line_sensors(sensors, IR_EMITTERS_ON);
+    // update minv and mav values and put normalized values in v
+    update_bounds(sensors, minv, maxv);
+    prev_position = position;         // compute line positon
+    position = line_position(sensors, minv, maxv);
 
-			if (run == 1) {
-				int leftMotor = rotation + offset;
-				int rightMotor = rotation - offset;
+    // offset needs deltaTime. add to deltaTime the amount of time it took 
+    // to go from the first time reading till now.
+    // we need to incorporate the past loop's run-time in addition to the 
+    // part of the while loop traversed so far.
+    deltaTime = deltaTime + millis() - prevTime;
 
-				newTheta = oldTheta + (long)(motor2angle(leftMotor, rightMotor) * deltaTime);
+    offset = position;
 
-				alpha = (oldTheta + newTheta)/2;
+    if (run == 1) {
+      leftMotor = rotation + offset;
+      rightMotor = rotation - offset;
 
-				xPos += (long)Sin(alpha)*deltaTime*motor2speed(rotation);
-				yPos += (long)Cos(alpha)*deltaTime*motor2speed(rotation);
+      newTheta = oldTheta + (long)(motor2angle(leftMotor, rightMotor) * deltaTime);
+			
+			if (newTheta > 360) 
+				newTheta -= 360;
+ 		
+      alpha = (oldTheta + newTheta)/2;
 
-				oldTheta = newTheta;
+      xPos += (long)Sin(alpha)*deltaTime*motor2speed(rotation);
+      yPos += (long)Cos(alpha)*deltaTime*motor2speed(rotation);
 
-				set_motors(leftMotor, rightMotor);
-			}
-			delay_ms(3);
-			// new deltaTime
-			deltaTime = millis() - prevTime;
+      oldTheta = newTheta;
+
+      set_motors(leftMotor, rightMotor);
+    }
+    delay_ms(3);
+    // new deltaTime
+    deltaTime = millis() - prevTime;
+
+    // debug code
+    lcd_goto_xy(0,1);
+    print_long(xPos);
+    lcd_goto_xy(0,2);
+    print_long(yPos);
+    //char display[8];
+    //sprintf(display,"%i %i",xPos,yPos);
+    //print(display);
+    clear();
+  } while(!off_track(0));
+ 
+	// now i am off track
+	// return to origin
+	// we are going to need to stop motors
 	
-			// debug code
-			lcd_goto_xy(0,1);
-			print_long(xPos);
-			lcd_goto_xy(0,2);
-			print_long(yPos);
-			//char display[8];
-			//sprintf(display,"%i %i",xPos,yPos);
-			//print(display);
-			clear();
-		} while(!offTrack(sensors,minv,maxv));
-
-		// go back home
-		set_motors(128,128); // direction reverses, this one needs updating
-
-		delay_ms(10);
-		return 0;
+	int originTheta = oldTheta;
+	xPos  = xPos/1000;
+	yPos = yPos/1000;
+	
+	deltaTime = millis();
+	
+	set_motors(0, 20);
+	while (originTheta > oldTheta) {
+		originTheta -= motor2speed(rotation)*deltaTime();
 	}
+		
+
+  set_motors(0,0);
+  delay_ms(250); //A short pause while holding still after finishing the line.
+  // go back home
+  set_motors(128,128); // direction reverses, this one needs updating
+
+  delay_ms(10);
+  return 0;
+}
