@@ -37,6 +37,22 @@ const char robotName[] PROGMEM = " TURTLE";
 
 char display_characters[9] = { ' ', 0, 1, 2, 3, 4, 5, 6, 255 };
 
+void idle() {
+  // Display calibrated values as a bar graph.
+  while(!button_is_pressed(BUTTON_B)) {
+    unsigned int position = read_line(sensors,IR_EMITTERS_ON);
+    //clear();
+    print_long(position);
+    lcd_goto_xy(0,1);
+    //display_readings(sensors);
+    delay_ms(100);
+  }
+  
+  run = 1;
+  wait_for_button_release(BUTTON_B);
+  //clear();
+  return;
+}
 // This function loads custom characters into the LCD. Up to 8
 // characters can be loaded; we use them for 6 levels of a bar graph
 // plus a back arrow and a musical note character.
@@ -145,7 +161,15 @@ void speed_calibrate(int first_speed, int second_speed){
   int first_mark_time = 0;
   int second_mark_time = 0;
   
-  idle();
+  while(!button_is_pressed(BUTTON_A)) {
+  	print("LOL");
+  }
+    wait_for_button_release(BUTTON_A);
+    delay_ms(100);
+  while(!button_is_pressed(BUTTON_A)) {
+  	print("LOL2");
+  }
+    wait_for_button_release(BUTTON_A);
   set_motors(first_speed, first_speed);
   while(1){
     if(off_track(0) && !first_mark_time){
@@ -160,7 +184,9 @@ void speed_calibrate(int first_speed, int second_speed){
       //requires a user rotate here
     }
   }
-  idle();
+  while(!button_is_pressed(BUTTON_A)) {}
+  wait_for_button_release(BUTTON_A);
+ 
   first_mark_time = second_mark_time = 0;
   set_motors(second_speed, second_speed);
   while(1){
@@ -189,7 +215,7 @@ void rotation_calibrate(int first_speed, int second_speed){
   int first_cross_time = 0;
   int second_cross_time = 0;
   
-  idle();
+  while(!button_is_pressed(BUTTON_A)) {}
   set_motors(first_speed, -first_speed);
   while(1){
     if(off_track(1) && !first_cross_time){
@@ -234,21 +260,7 @@ void dance() {
   set_motors(0,0);
 }
 
-void idle() {
-  // Display calibrated values as a bar graph.
-  while(!button_is_pressed(BUTTON_B)) {
-    unsigned int position = read_line(sensors,IR_EMITTERS_ON);
-    clear();
-    print_long(position);
-    lcd_goto_xy(0,1);
-    //display_readings(sensors);
-    delay_ms(100);
-  }
-  
-  run = 1;
-  wait_for_button_release(BUTTON_B);
-  clear();
-}
+
 
 // Initializes the 3pi, displays a welcome message, calibrates, and
 // plays the initial music.
@@ -280,11 +292,11 @@ int main() {
   // set up the 3pi, and wait for B button to be pressed
   initialize();
 
-  idle(sensors);
+  idle();
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); // sensor calibration
-  //speed_calibrate(40,80);
-  //rotation_calibrate(40,80);
+  speed_calibrate(40,80);
+  rotation_calibrate(40,80);
 
   // display calibrated sensor values as a bar graph.
   do {
