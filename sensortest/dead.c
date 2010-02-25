@@ -111,7 +111,7 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 int off_track(center_only) {
   if(center_only){
     int min = minv[2];
-    long dist = (100*((long)s[2]-min))/((long)maxv[2]-min);
+    long dist = (100*((long)sensors[2]-min))/((long)maxv[2]-min);
     if (dist > 50){
       return 0;
     } else {
@@ -137,7 +137,7 @@ void battery_reading() {
 
 void speed_calibrate(int first_speed, int second_speed){
   clear();
-  print_long("Speed Test");
+  print("Speed Test");
   lcd_goto_xy(0,1);
   
   int first_speed_time = 0;
@@ -148,10 +148,10 @@ void speed_calibrate(int first_speed, int second_speed){
   wait_for_button_release(BUTTON_B);
   set_motors(first_speed, first_speed);
   while(1){
-    if(offTrack(0) && !first_mark_time){
-      first_mark_time = milis();
-    } else if(offTrack(0) && !second_mark_time && (milis() - first_mark_time > 200)) {
-      second_mark_time = milis();
+    if(off_track(0) && !first_mark_time){
+      first_mark_time = millis();
+    } else if(off_track(0) && !second_mark_time && (milis() - first_mark_time > 200)) {
+      second_mark_time = millis();
     }
     if (second_mark_time){
       set_motors(0,0);
@@ -164,10 +164,10 @@ void speed_calibrate(int first_speed, int second_speed){
   first_mark_time = second_mark_time = 0;
   set_motors(second_speed, second_speed);
   while(1){
-    if(offTrack(0) && !first_mark_time){
-      first_mark_time = milis();
-    } else if(offTrack(0) && !second_mark_time && (milis() - first_mark_time > 200)) {
-      second_mark_time = milis();
+    if(off_track(0) && !first_mark_time){
+      first_mark_time = millis();
+    } else if(off_track(0) && !second_mark_time && (millis() - first_mark_time > 200)) {
+      second_mark_time = millis();
     }
     if (second_mark_time){
       set_motors(0,0);
@@ -192,10 +192,10 @@ void rotation_calibrate(int first_speed, int second_speed){
   wait_for_button_release(BUTTON_B);
   set_motors(first_speed, -first_speed);
   while(1){
-    if(offTrack(1) && !first_cross_time){
-      first_cross_time = milis();
-    } else if (offTrack(1) && !second_cross_time && (milis() - first_cross_time > 200)){
-      second_cross_time = milis();
+    if(off_track(1) && !first_cross_time){
+      first_cross_time = millis();
+    } else if (off_track(1) && !second_cross_time && (millis() - first_cross_time > 200)){
+      second_cross_time = millis();
     }
     if(second_cross_time){
       first_rotation_time = second_cross_time - first_cross_time;
@@ -205,10 +205,10 @@ void rotation_calibrate(int first_speed, int second_speed){
   first_cross_time = second_cross_time = 0;
   set_motors(second_speed,second_speed);
   while(1){
-    if(offTrack(1) && !first_cross_time){
-      first_cross_time = milis();
-    } else if (offTrack(1) && !second_cross_time && (milis() - first_cross_time > 200)){
-      second_cross_time = milis();
+    if(off_track(1) && !first_cross_time){
+      first_cross_time = millis();
+    } else if (off_track(1) && !second_cross_time && (millis() - first_cross_time > 200)){
+      second_cross_time = millis();
     }
     if(second_cross_time){
       set_motors(0,0);
