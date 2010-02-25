@@ -121,7 +121,7 @@ int off_track(center_only) {
   int i;	
   for(i = 0; i < 5; i++){       // sensors.each
     int min = minv[i];
-    long dist = (100*((long)s[i]-min))/((long)maxv[i]-min); //0-100
+    long dist = (100*((long)sensors[i]-min))/((long)maxv[i]-min); //0-100
     if(dist > 50)
       return 0;
   }
@@ -145,12 +145,12 @@ void speed_calibrate(int first_speed, int second_speed){
   int first_mark_time = 0;
   int second_mark_time = 0;
   
-  wait_for_button_release(BUTTON_B);
+  idle();
   set_motors(first_speed, first_speed);
   while(1){
     if(off_track(0) && !first_mark_time){
       first_mark_time = millis();
-    } else if(off_track(0) && !second_mark_time && (milis() - first_mark_time > 200)) {
+    } else if(off_track(0) && !second_mark_time && (millis() - first_mark_time > 200)) {
       second_mark_time = millis();
     }
     if (second_mark_time){
@@ -160,7 +160,7 @@ void speed_calibrate(int first_speed, int second_speed){
       //requires a user rotate here
     }
   }
-  wait_for_button_release(BUTTON_B);
+  idle();
   first_mark_time = second_mark_time = 0;
   set_motors(second_speed, second_speed);
   while(1){
@@ -189,7 +189,7 @@ void rotation_calibrate(int first_speed, int second_speed){
   int first_cross_time = 0;
   int second_cross_time = 0;
   
-  wait_for_button_release(BUTTON_B);
+  idle();
   set_motors(first_speed, -first_speed);
   while(1){
     if(off_track(1) && !first_cross_time){
@@ -283,8 +283,8 @@ int main() {
   idle(sensors);
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); // sensor calibration
-  speed_calibrate(40,80);
-  rotation_calibrate(40,80);
+  //speed_calibrate(40,80);
+  //rotation_calibrate(40,80);
 
   // display calibrated sensor values as a bar graph.
   do {
