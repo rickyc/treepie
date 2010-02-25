@@ -8,7 +8,7 @@ LDFLAGS=-Wl,-gc-sections -lpololu_atmega328p
 
 PORT=/dev/ttyUSB0
 AVRDUDE=/usr/bin/avrdude
-TARGET=dead
+TARGET=test
 
 all: $(TARGET).hex
 
