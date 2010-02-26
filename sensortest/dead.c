@@ -256,8 +256,6 @@ void dance() {
   set_motors(0,0);
 }
 
-
-
 // Initializes the 3pi, displays a welcome message, calibrates, and
 // plays the initial music.
 void initialize() {
@@ -327,9 +325,14 @@ int main() {
 
       newTheta = oldTheta + (long)(motor2angle(leftMotor, rightMotor) * deltaTime);
 			
+			//upper bounds
 			if (newTheta > 360) 
 				newTheta -= 360;
- 		
+ 			
+ 			//lower bound
+ 			if (newTheta < 0)
+ 				newTheta += 360;
+ 						
       alpha = (oldTheta + newTheta)/2;
 
       xPos += (long)Sin(alpha)*deltaTime*motor2speed(rotation);
@@ -358,23 +361,66 @@ int main() {
 	// return to origin
 	// we are going to need to stop motors
 	
-	int originTheta = oldTheta;
+	int targetTheta = oldTheta;
 	xPos  = xPos/1000;
 	yPos = yPos/1000;
 	
 	deltaTime = millis();
 	
-	set_motors(0, 20);
-	while (originTheta > oldTheta) {
-		originTheta -= motor2speed(rotation)*deltaTime();
+	set_motors(20, 0);
+	while (targetTheta > 0) {
+		targetTheta -= motor2speed(10)*deltaTime();
+		delay_ms(10);
+		deltaTime = millis() - deltaTime;
 	}
-		
-
   set_motors(0,0);
-  delay_ms(250); //A short pause while holding still after finishing the line.
-  // go back home
-  set_motors(128,128); // direction reverses, this one needs updating
-
-  delay_ms(10);
+  
+  //now hit theta = 270 to point straight downward towards the origin.
+  targetTheta = 90;
+  set_motors(20, 0);
+ 	while (targetTheta > 0) {
+		targetTheta -= motor2speed(10)*deltaTime();
+		delay_ms(10);
+		deltaTime = millis() - deltaTime;
+	}
+  set_motors(0,0);
+  delay_ms(250);
+  
+  //go down by yPos
+  set_motors(20,20);
+  deltaTime = millis();
+  
+  while (yPos > 0) {
+  	yPos -= motor2speed(20) * deltaTime;
+  	delay_ms(10);
+  	deltaTime = millis() - deltaTime;
+  }
+  set_motors(0,0);
+  delay_ms(250);
+  
+  //turn by 90 degrees to the right.
+  targetTheta = 90;
+  set_motors(20,0);
+  deltaTime = millis();
+  while (targetTheta > 0) {
+  	targetTheta -= motor2speed(10)*deltaTime();
+		delay_ms(10);
+		deltaTime = millis() - deltaTime;
+	}
+	set_motors(0,0);
+	delay_ms(250);
+	
+	//go by xPos
+	set_motors(20,20);
+	deltaTime = millis();
+	
+	while (xPos > 0) {
+		xPos -= motor2speed(20) * deltaTime;
+		delay_ms(10);
+		deltaTime = millis() - deltaTime;
+	}
+	set_motors(0,0);
+  delay_ms(250)
+  //et phone home
   return 0;
 }
