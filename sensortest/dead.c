@@ -35,22 +35,25 @@ const char robotName[] PROGMEM = " TURTLE";
 
 char display_characters[9] = { ' ', 0, 1, 2, 3, 4, 5, 6, 255 };
 
-void idle() {
+void idleUntilButtonPressed(button) {
   // Display calibrated values as a bar graph.
-  while(!button_is_pressed(BUTTON_B)) {
+  while(!button_is_pressed(button)) {
     unsigned int position = read_line(sensors,IR_EMITTERS_ON);
-    //clear();
+    clear();
     print_long(position);
     lcd_goto_xy(0,1);
     //display_readings(sensors);
     delay_ms(100);
   }
   
-  run = 1;
-  wait_for_button_release(BUTTON_B);
-  //clear();
-  return;
+  wait_for_button_release(button);
+  clear();
 }
+
+// helper functions
+void toggleRun() { run = 1-run; }
+void stopMotors() { set_motors(0,0); }
+
 // This function loads custom characters into the LCD. Up to 8
 // characters can be loaded; we use them for 6 levels of a bar graph
 // plus a back arrow and a musical note character.
@@ -141,13 +144,6 @@ int off_track(center_only) {
   }
   return 1;
 }
-// Displays the battery voltage.
-void battery_reading() {
-  unsigned int bat = read_battery_millivolts();
-  print_long(bat);
-  print("mV");
-  delay_ms(250);
-}
 
 void speed_calibrate(int first_speed, int second_speed){
   clear();
@@ -159,11 +155,11 @@ void speed_calibrate(int first_speed, int second_speed){
   int first_mark_time = 0;
   int second_mark_time = 0;
   
-	while(!button_is_pressed(BUTTON_A)) { }
-	wait_for_button_release(BUTTON_A);
-	delay_ms(100);
+	idleUntilButtonPressed(BUTTON_A);
+
   set_motors(first_speed, first_speed);
-  while(1){
+
+  while(1) {
     read_line_sensors(sensors, IR_EMITTERS_ON);
     if(off_track(0) && !first_mark_time){
       first_mark_time = millis();
@@ -171,14 +167,14 @@ void speed_calibrate(int first_speed, int second_speed){
       second_mark_time = millis();
     }
     if (second_mark_time){
-      set_motors(0,0);
+      stopMotors();
       first_speed_time = second_mark_time - first_mark_time;
       break;
       //requires a user rotate here
     }
   }
-  while(!button_is_pressed(BUTTON_A)) {}
-  wait_for_button_release(BUTTON_A);
+
+	idleUntilButtonPressed(BUTTON_A);
  
   first_mark_time = second_mark_time = 0;
   set_motors(second_speed, second_speed);
@@ -190,7 +186,7 @@ void speed_calibrate(int first_speed, int second_speed){
       second_mark_time = millis();
     }
     if (second_mark_time){
-      set_motors(0,0);
+      stopMotors();
       second_speed_time = second_mark_time - first_mark_time;
       break;
     }
@@ -233,7 +229,7 @@ void rotation_calibrate(int first_speed, int second_speed){
       second_cross_time = millis();
     }
     if(second_cross_time){
-      set_motors(0,0);
+      stopMotors();
       second_rotation_time = second_cross_time - first_cross_time;
       break;
     }
@@ -253,7 +249,7 @@ void dance() {
     update_bounds(sensors,minv,maxv);
     delay_ms(20);
   }
-  set_motors(0,0);
+  stopMotors();
 }
 
 // Initializes the 3pi, displays a welcome message, calibrates, and
@@ -288,9 +284,9 @@ int main() {
   // set up the 3pi, and wait for B button to be pressed
   initialize();
 
-  idle();
+	idleUntilButtonPressed(BUTTON_B);
   read_line_sensors(sensors,IR_EMITTERS_ON);
-  dance(); // sensor calibration
+  dance(); 
   speed_calibrate(40,80);
   rotation_calibrate(40,80);
 
@@ -299,14 +295,12 @@ int main() {
     // button press adjustments (RFCT)
     if (button_is_pressed(BUTTON_B)) {
       play_from_program_space(beep_button_middle);
-      run = 1-run;
+      toggleRun();
       delay_ms(200);
     } 
 
     prevTime = millis();  //get the first time reading 		
-    // read the line sensor values
     read_line_sensors(sensors, IR_EMITTERS_ON);
-    // update minv and mav values and put normalized values in v
     update_bounds(sensors, minv, maxv);
     prev_position = position;         // compute line positon
     position = line_position(sensors, minv, maxv);
@@ -373,7 +367,7 @@ int main() {
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
-  set_motors(0,0);
+  stopMotors();
   
   //now hit theta = 270 to point straight downward towards the origin.
   targetTheta = 90;
@@ -383,7 +377,7 @@ int main() {
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
-  set_motors(0,0);
+  stopMotors();
   delay_ms(250);
   
   //go down by yPos
@@ -395,7 +389,7 @@ int main() {
   	delay_ms(10);
   	deltaTime = millis() - deltaTime;
   }
-  set_motors(0,0);
+  stopMotors();
   delay_ms(250);
   
   //turn by 90 degrees to the right.
@@ -407,7 +401,7 @@ int main() {
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
-	set_motors(0,0);
+	stopMotors();
 	delay_ms(250);
 	
 	//go by xPos
@@ -419,8 +413,10 @@ int main() {
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
-	set_motors(0,0);
+	stopMotors();
   delay_ms(250)
+
   //et phone home
+	
   return 0;
 }
