@@ -332,12 +332,9 @@ int main() {
       newTheta = oldTheta + (long)(motor2angle(leftMotor, rightMotor) * deltaTime);
 			
 			//upper bounds
-			if (newTheta > 360) 
-				newTheta -= 360;
- 			
+			if (newTheta >= 360) newTheta -= 360;
  			//lower bound
- 			if (newTheta < 0)
- 				newTheta += 360;
+ 			if (newTheta < 0) newTheta += 360;
  						
       alpha = (oldTheta + newTheta)/2;
 
@@ -366,47 +363,54 @@ int main() {
 	// now i am off track
 	// return to origin
 	// we are going to need to stop motors
-	
+	set_motors(0,0);	//turn motors off
 	int targetTheta = oldTheta;
+	long oldXPos = xPos;
+	long oldYPos = yPos;
 	xPos  = xPos/1000;
 	yPos = yPos/1000;
 	
 	deltaTime = millis();
 	
-	set_motors(20, 0);
-	while (targetTheta > 0) {
+	//if 0 is "starting north", make it point "south" by rotating 180 degrees.
+	if (targetTheta < 180) {
+		targetTheta = (180 - targetTheta) + 180;
+		set_motors(rotation, 0);
+	}
+	else
+		set_motors(0, rotation);
+	
+	while (targetTheta > 180) {
 		targetTheta -= motor2speed(10)*deltaTime();
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
   set_motors(0,0);
   
-  //now hit theta = 270 to point straight downward towards the origin.
-  targetTheta = 90;
-  set_motors(20, 0);
- 	while (targetTheta > 0) {
-		targetTheta -= motor2speed(10)*deltaTime();
-		delay_ms(10);
-		deltaTime = millis() - deltaTime;
-	}
-  set_motors(0,0);
-  delay_ms(250);
   
-  //go down by yPos
-  set_motors(20,20);
+  //go up or down by yPos
+  set_motors(rotation,rotation);
   deltaTime = millis();
+  //flip the yPos value if negative
+  if (yPos < 0) yPos = -yPos;
   
   while (yPos > 0) {
-  	yPos -= motor2speed(20) * deltaTime;
+  	yPos -= motor2speed(rotation) * deltaTime;
   	delay_ms(10);
   	deltaTime = millis() - deltaTime;
   }
   set_motors(0,0);
   delay_ms(250);
   
-  //turn by 90 degrees to the right.
+  //turn by 90 degrees to the right or left.
   targetTheta = 90;
-  set_motors(20,0);
+  
+  //turn robot to the proper angle based upon where it began. 
+  if (oldXPos > 0 && oldYPos > 0) set_motors(rotation, 0);			//q1
+  else if (oldXPos < 0 && oldYPos > 0) set_motors(0, rotation); //q2
+  else if (oldXPos < 0 && oldYPos < 0) set_motors(rotation, 0);	//q3
+  else set_motors(0, rotation);																	//q4
+  
   deltaTime = millis();
   while (targetTheta > 0) {
   	targetTheta -= motor2speed(10)*deltaTime();
@@ -417,11 +421,14 @@ int main() {
 	delay_ms(250);
 	
 	//go by xPos
-	set_motors(20,20);
+	set_motors(rotation,rotation);
 	deltaTime = millis();
 	
+	//flip xPos
+	if (xPos < 0) xPos = -xPos;
+	
 	while (xPos > 0) {
-		xPos -= motor2speed(20) * deltaTime;
+		xPos -= motor2speed(rotation) * deltaTime;
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
