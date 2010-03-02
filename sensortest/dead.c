@@ -289,7 +289,7 @@ int main() {
   unsigned long prevTime = 0;
   unsigned long deltaTime = 0;
 	int leftMotor = 0;
-	int rightMotor = 0;
+	int rightMotor = 0;
 
   // set up the 3pi, and wait for B button to be pressed
   initialize();
@@ -381,7 +381,7 @@ int main() {
 		set_motors(0, rotation);
 	
 	while (targetTheta > 180) {
-		targetTheta -= motor2speed(10)*deltaTime();
+		targetTheta -= motor2speed(10)*deltaTime;
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
@@ -413,7 +413,7 @@ int main() {
   
   deltaTime = millis();
   while (targetTheta > 0) {
-  	targetTheta -= motor2speed(10)*deltaTime();
+  	targetTheta -= motor2speed(10)*deltaTime;
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
