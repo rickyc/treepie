@@ -12,8 +12,6 @@
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
 #include "3pi_kinematics.h"
-#define MIN_MOTOR_SPEED 0
-#define MAX_MOTOR_SPEED 255
 
 // global arrays to hold min and max sensor values for calibration
 unsigned int sensors[5]; // global array to hold sensor values
@@ -161,17 +159,12 @@ void speed_calibrate(int first_speed, int second_speed){
   int first_mark_time = 0;
   int second_mark_time = 0;
   
-	while(!button_is_pressed(BUTTON_A)) {
-					print("hello");
-	}
+	while(!button_is_pressed(BUTTON_A)) { }
 	wait_for_button_release(BUTTON_A);
 	delay_ms(100);
-	while(!button_is_pressed(BUTTON_A)) {
-					print("second test");
-	}
-    wait_for_button_release(BUTTON_A);
   set_motors(first_speed, first_speed);
   while(1){
+    read_line_sensors(sensors, IR_EMITTERS_ON);
     if(off_track(0) && !first_mark_time){
       first_mark_time = millis();
     } else if(off_track(0) && !second_mark_time && (millis() - first_mark_time > 200)) {
@@ -190,6 +183,7 @@ void speed_calibrate(int first_speed, int second_speed){
   first_mark_time = second_mark_time = 0;
   set_motors(second_speed, second_speed);
   while(1){
+    read_line_sensors(sensors, IR_EMITTERS_ON);
     if(off_track(0) && !first_mark_time){
       first_mark_time = millis();
     } else if(off_track(0) && !second_mark_time && (millis() - first_mark_time > 200)) {
@@ -218,6 +212,7 @@ void rotation_calibrate(int first_speed, int second_speed){
   while(!button_is_pressed(BUTTON_A)) {}
   set_motors(first_speed, -first_speed);
   while(1){
+    read_line_sensors(sensors, IR_EMITTERS_ON);
     if(off_track(1) && !first_cross_time){
       first_cross_time = millis();
     } else if (off_track(1) && !second_cross_time && (millis() - first_cross_time > 200)){
@@ -231,6 +226,7 @@ void rotation_calibrate(int first_speed, int second_speed){
   first_cross_time = second_cross_time = 0;
   set_motors(second_speed,second_speed);
   while(1){
+    read_line_sensors(sensors, IR_EMITTERS_ON);
     if(off_track(1) && !first_cross_time){
       first_cross_time = millis();
     } else if (off_track(1) && !second_cross_time && (millis() - first_cross_time > 200)){
@@ -259,8 +255,6 @@ void dance() {
   }
   set_motors(0,0);
 }
-
-
 
 // Initializes the 3pi, displays a welcome message, calibrates, and
 // plays the initial music.
@@ -433,9 +427,7 @@ int main() {
 		deltaTime = millis() - deltaTime;
 	}
 	set_motors(0,0);
-	delay_ms(250);
-  	
-
-  delay_ms(10);
+  delay_ms(250)
+  //et phone home
   return 0;
 }
