@@ -31,7 +31,7 @@ int run = 0; // if =1 run the robot, if =0 stop
 
 // Introductory messages. The "PROGMEM" identifier
 // causes the data to go into program space.
-const char robotName[] PROGMEM = " TURTLE";
+const char robotName[] PROGMEM = " PONY";
 
 char display_characters[9] = { ' ', 0, 1, 2, 3, 4, 5, 6, 255 };
 
@@ -327,11 +327,15 @@ int main() {
  						
       alpha = (oldTheta + newTheta)/2;
 
-      xPos += (long)Sin(alpha)*deltaTime*motor2speed(rotation);
-      yPos += (long)Cos(alpha)*deltaTime*motor2speed(rotation);
+      long lolz =  (long)Sin(alpha)*deltaTime*motor2speed(rotation)/100000;
+      xPos += lolz;
+      yPos += (long)Cos(alpha)*deltaTime*motor2speed(rotation)/100000;
+			if (lolz < 0) {
+				play_from_program_space(beep_button_middle);
+      	delay_ms(200); 
+      }
 
       oldTheta = newTheta;
-
       set_motors(leftMotor, rightMotor);
     }
     delay_ms(3);
@@ -339,16 +343,19 @@ int main() {
     deltaTime = millis() - prevTime;
 
     // debug code
-    lcd_goto_xy(0,1);
+    clear();
+    lcd_goto_xy(0,0);
     print_long(xPos);
-    lcd_goto_xy(0,2);
-    print_long(yPos);
+    lcd_goto_xy(1,1);
+    print_long(Sin(alpha));
+    delay_ms(100);
     //char display[8];
     //sprintf(display,"%i %i",xPos,yPos);
     //print(display);
-    clear();
+    
   } while(off_track(0) == 0); 
  
+ 	print("GO HOME");
 	// now i am off track
 	// return to origin
 	// we are going to need to stop motors
@@ -356,11 +363,11 @@ int main() {
 	int targetTheta = oldTheta;
 	long oldXPos = xPos;
 	long oldYPos = yPos;
-	xPos  = xPos/1000;
-	yPos = yPos/1000;
+	// xPos  = xPos/1000;
+	// yPos = yPos/1000;
 	
 	deltaTime = millis();
-	
+/*
 	//if 0 is "starting north", make it point "south" by rotating 180 degrees.
 	if (targetTheta < 180) {
 		targetTheta = (180 - targetTheta) + 180;
@@ -372,13 +379,13 @@ int main() {
   targetTheta = 90;
   set_motors(20, 0);
  	while (targetTheta > 0) {
-		targetTheta -= motor2speed(10)*deltaTime();
+		targetTheta -= motor2speed(10)*deltaTime;
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
   stopMotors();
   delay_ms(250);
-  
+*/ 
   //go up or down by yPos
   set_motors(rotation,rotation);
   deltaTime = millis();
