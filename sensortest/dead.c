@@ -136,7 +136,7 @@ int off_track(center_only) {
   for(i = 0; i < 5; i++){       // sensors.each
     int min = minv[i];
     long dist = (100*((long)sensors[i]-min))/((long)maxv[i]-min); //0-100
-    if(dist > 50)
+    if(dist > 10)
       return 0;
   }
   return 1;
@@ -317,7 +317,7 @@ int main() {
     // part of the while loop traversed so far.
     deltaTime = deltaTime + millis() - prevTime;
 
-    offset = position;
+    offset = position/10;
 
     if (run == 1) {
       leftMotor = rotation + offset;
@@ -352,7 +352,7 @@ int main() {
     //sprintf(display,"%i %i",xPos,yPos);
     //print(display);
     clear();
-  } while(!off_track(0));
+  } while(off_track(0) == 0); 
  
 	// now i am off track
 	// return to origin
@@ -427,7 +427,7 @@ int main() {
 		deltaTime = millis() - deltaTime;
 	}
 	set_motors(0,0);
-  delay_ms(250)
+  delay_ms(250);
   //et phone home
   return 0;
 }
