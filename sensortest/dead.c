@@ -297,8 +297,8 @@ int main() {
   idle();
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); // sensor calibration
-  speed_calibrate(40,80);
-  rotation_calibrate(40,80);
+  //speed_calibrate(40,80);
+  //rotation_calibrate(40,80);
 
   // display calibrated sensor values as a bar graph.
   do {
