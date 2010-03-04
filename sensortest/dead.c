@@ -35,7 +35,7 @@ const char robotName[] PROGMEM = " TURTLE";
 
 char display_characters[9] = { ' ', 0, 1, 2, 3, 4, 5, 6, 255 };
 
-void idleUntilButtonPressed(button) {
+void idle_until_button_pressed(button) {
   // Display calibrated values as a bar graph.
   while(!button_is_pressed(button)) {
     unsigned int position = read_line(sensors,IR_EMITTERS_ON);
@@ -155,7 +155,7 @@ void speed_calibrate(int first_speed, int second_speed){
   int first_mark_time = 0;
   int second_mark_time = 0;
   
-	idleUntilButtonPressed(BUTTON_A);
+	idle_until_button_pressed(BUTTON_A);
 
   set_motors(first_speed, first_speed);
 
@@ -174,7 +174,7 @@ void speed_calibrate(int first_speed, int second_speed){
     }
   }
 
-	idleUntilButtonPressed(BUTTON_A);
+	idle_until_button_pressed(BUTTON_A);
  
   first_mark_time = second_mark_time = 0;
   set_motors(second_speed, second_speed);
@@ -284,7 +284,7 @@ int main() {
   // set up the 3pi, and wait for B button to be pressed
   initialize();
 
-	idleUntilButtonPressed(BUTTON_B);
+	idle_until_button_pressed(BUTTON_B);
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); 
   speed_calibrate(40,80);
