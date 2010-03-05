@@ -146,7 +146,7 @@ int off_track(center_only) {
   }
   return 1;
 }
-
+/*
 void speed_calibrate(int first_speed, int second_speed){
   clear();
   print("Speed Test");
@@ -239,7 +239,7 @@ void rotation_calibrate(int first_speed, int second_speed){
   //do calculation math here, then save the constants appropriately
   return;
 }
-
+*/
 // Make a little dance: Turn left and right
 void dance() {
   int counter;
@@ -344,7 +344,7 @@ int main() {
       xPos += (long)((Sin(alpha/1000)*deltaTime*motor2speed(rotation))/1000000);
       yPos += (long)((Cos(alpha/1000)*deltaTime*motor2speed(rotation))/1000000);
       
-      oldTheta = alpha;
+      oldTheta = newTheta;
       
       set_motors(leftMotor, rightMotor);
       
