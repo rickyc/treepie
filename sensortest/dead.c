@@ -117,10 +117,10 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int i;
 	long sum = 0;
 	long count = 0;
-	int adjustment[5] = {-2000, -1000, 1, 1000, 2000};
+	int adjustment[5] = {-1000, -500, 0, 500, 1000};
 	for (i = 0; i < 5; i++) {
 		long min = (long)minv[i];   // tiny efficiency gain here
-		long dist = (100*((long)s[i]-min))/((long)maxv[i]-min); // 0-100
+		long dist = (10*((long)s[i]-min))/((long)maxv[i]-min); // 0-100
 		sum += dist*adjustment[i];  // 0-100's weighted by adjustment
 		count += dist;              // sum of 0-100's
 	}
@@ -146,7 +146,7 @@ int off_track(center_only) {
   }
   return 1;
 }
-
+/*
 void speed_calibrate(int first_speed, int second_speed){
   clear();
   print("Speed Test");
@@ -239,12 +239,12 @@ void rotation_calibrate(int first_speed, int second_speed){
   //do calculation math here, then save the constants appropriately
   return;
 }
-
+*/
 // Make a little dance: Turn left and right
 void dance() {
   int counter;
   for(counter=0;counter<80;counter++) {
-    if(counter < 20 || counter >= 60) { set_motors(40,-40);
+    if(counter <= 20 || counter >= 60) { set_motors(40,-40);
     } else { set_motors(-40,40); }
     // Since our counter runs to 80, the total delay will be 80*20 = 1600 ms.
     read_line_sensors(sensors, IR_EMITTERS_ON);
@@ -272,15 +272,17 @@ int main() {
   long position = 0;
   long oldPosition = 0;
   long derivative = 0;
-  long prev_position = 0;
   int offset = 0;
+  int leftMotor = 0;
+  int rightMotor = 0;
   long integral = 0;
-  int rotation = 18;
+  int rotation = 25;
   long xPos = 0;
   long yPos = 0;
-  int oldTheta = 0;
-  int newTheta = 0;
-  int alpha = 0;
+  long oldTheta = 0;
+  long newTheta = 0;
+  long marginalTheta = 0;
+  long alpha = 0;
   unsigned long prevTime = 0;
   unsigned long deltaTime = 0;
 
@@ -303,29 +305,29 @@ int main() {
       delay_ms(200);
     } 
 		
-		oldPosition = position;
+		oldPosition = position;	// compute line positon
     prevTime = millis();  //get the first time reading 		
     read_line_sensors(sensors, IR_EMITTERS_ON);
     update_bounds(sensors, minv, maxv);
-    prev_position = position;         // compute line positon
     position = line_position(sensors, minv, maxv);
 		
     // offset needs deltaTime. add to deltaTime the amount of time it took 
     // to go from the first time reading till now.
     // we need to incorporate the past loop's run-time in addition to the 
     // part of the while loop traversed so far.
+
     deltaTime = deltaTime + millis() - prevTime;
  
     // position = -2000 to 2000
-    derivative = (position - prev_position)/deltaTime;
-    integral += (position+prev_position)/2 * deltaTime; // tracks long runningposition offset
-    offset = 	position/50; //+ derivative/1000; //+ integral/10000;
+    derivative = position - oldPosition;
+    integral = position + oldPosition; // tracks long runningposition offset
+    offset = 	position/11 + derivative/30 + integral/50;
 			
 			
 		if (run == 1) {	
-			short leftMotor = rotation + offset;
-      short rightMotor = rotation - offset;
-      // short motorsMax = (offset < 0) ? rightMotor : leftMotor;
+		
+			leftMotor = rotation + offset;
+      rightMotor = rotation - offset;
  
       leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
@@ -334,74 +336,72 @@ int main() {
       leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
 
-      newTheta = oldTheta + (int)( (motor2angle(leftMotor, rightMotor)/1000) * deltaTime);
+			marginalTheta = (long)( motor2angle(leftMotor, rightMotor) * deltaTime);
 			
-			//upper bounds
-			if (newTheta >= 360) newTheta %= 360;
- 			//lower bound
- 			if (newTheta < 0) newTheta += 360;
- 						
-      alpha = (oldTheta + newTheta)/2;
-
-      // long lolz =  /100000;
-      xPos += (long)(Sin(alpha)*deltaTime*motor2speed(rotation)/100000);
-      yPos += (long)(Cos(alpha)*deltaTime*motor2speed(rotation)/100000);
-			//if (lolz < 0) {
-			//	play_from_program_space(beep_button_middle);
-      delay_ms(100); 
-      //}
-
+			newTheta = oldTheta + marginalTheta;
+			
+			alpha = newTheta;
+      
+      xPos += (long)((Sin(alpha/1000)*deltaTime*motor2speed(rotation))/1000000);
+      yPos += (long)((Cos(alpha/1000)*deltaTime*motor2speed(rotation))/1000000);
+      
       oldTheta = newTheta;
+      
       set_motors(leftMotor, rightMotor);
+      
     }
-     delay_ms(3);
-    // new deltaTime
-    deltaTime = millis() - prevTime;
 
     // debug code
     clear();
     lcd_goto_xy(0,0);
-    print_long(xPos);
+    print_long(marginalTheta);
     lcd_goto_xy(1,1);
-    print_long(alpha);
-    delay_ms(100);
+    print_long(alpha/1000);
+    delay_ms(1);
     //char display[8];
     //sprintf(display,"%i %i",xPos,yPos);
     //print(display);
     
+    // new deltaTime
+    deltaTime = millis() - prevTime;
+    
   } while(off_track(0) == 0); 
- 
+ 	
+ 	clear();
  	print("GO HOME");
 	// now i am off track
 	// return to origin
 	// we are going to need to stop motors
-	set_motors(0,0);	//turn motors off
-	int targetTheta = oldTheta;
-	long oldXPos = xPos;
-	long oldYPos = yPos;
-	// xPos  = xPos/1000;
-	// yPos = yPos/1000;
 	
-	deltaTime = millis();
-/*
-	//if 0 is "starting north", make it point "south" by rotating 180 degrees.
-	if (targetTheta < 180) {
-		targetTheta = (180 - targetTheta) + 180;
-		set_motors(rotation, 0);
+	set_motors(0,0);	//turn motors off
+	int targetTheta = oldTheta/1000;
+	
+	//if it's a positive angle, subtract it from 180 and then make the right motor neg 
+	// and the left motor positive to spin clockwise.
+	if (targetTheta > 0) {
+			targetTheta = 180 - targetTheta;
+			leftMotor = rotation;
+			rightMotor = -rotation;
+	} else {
+			targetTheta = 180 + targetTheta;
+			leftMotor = -rotation;
+			rightMotor = rotation;
+	}  
+ 
+ 	deltaTime = millis() - deltaTime;
+ 	targetTheta *= 1000;
+ 	clear();
+ 	print_long(targetTheta/1000);
+ 	//turn the robot
+ 	long c = motor2angle(leftMotor,rightMotor);
+ 	long invC = 1/c;
+ 	c = invC * targetTheta;
+	int ac;
+	for(ac=0;ac<c;ac++) {
+		set_motors(leftMotor, rightMotor);
 	}
   stopMotors();
-  
-  //now hit theta = 270 to point straight downward towards the origin.
-  targetTheta = 90;
-  set_motors(20, 0);
- 	while (targetTheta > 0) {
-		targetTheta -= motor2speed(10)*deltaTime;
-		delay_ms(10);
-		deltaTime = millis() - deltaTime;
-	}
-  stopMotors();
-  delay_ms(250);
-*/ 
+/* 
   //go up or down by yPos
   set_motors(rotation,rotation);
   deltaTime = millis();
@@ -451,6 +451,6 @@ int main() {
   delay_ms(250);
 
   //et phone home
-	
+*/	
   return 0;
 }
