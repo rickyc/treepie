@@ -12,6 +12,8 @@
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
 #include "3pi_kinematics.h"
+#define MIN_MOTOR_SPEED 0
+#define MAX_MOTOR_SPEED 255
 
 // global arrays to hold min and max sensor values for calibration
 unsigned int sensors[5]; // global array to hold sensor values
@@ -31,7 +33,7 @@ int run = 0; // if =1 run the robot, if =0 stop
 
 // Introductory messages. The "PROGMEM" identifier
 // causes the data to go into program space.
-const char robotName[] PROGMEM = " TURTLE";
+const char robotName[] PROGMEM = " PONY";
 
 char display_characters[9] = { ' ', 0, 1, 2, 3, 4, 5, 6, 255 };
 
@@ -139,7 +141,7 @@ int off_track(center_only) {
   for(i = 0; i < 5; i++){       // sensors.each
     int min = minv[i];
     long dist = (100*((long)sensors[i]-min))/((long)maxv[i]-min); //0-100
-    if(dist > 50)
+    if(dist > 10)
       return 0;
   }
   return 1;
@@ -268,27 +270,29 @@ int main() {
   
   // line position relative to center
   long position = 0;
+  long oldPosition = 0;
+  long derivative = 0;
   long prev_position = 0;
-  long offset = 0;
-  long rotation = 20;
+  int offset = 0;
+  long integral = 0;
+  int rotation = 18;
   long xPos = 0;
   long yPos = 0;
-  long oldTheta = 0;
-  long newTheta = 0;
-  long alpha = 0;
+  int oldTheta = 0;
+  int newTheta = 0;
+  int alpha = 0;
   unsigned long prevTime = 0;
   unsigned long deltaTime = 0;
-	int leftMotor = 0;
-	int rightMotor = 0;
 
   // set up the 3pi, and wait for B button to be pressed
   initialize();
 
 	idle_until_button_pressed(BUTTON_B);
   read_line_sensors(sensors,IR_EMITTERS_ON);
-  dance(); 
-  speed_calibrate(40,80);
-  rotation_calibrate(40,80);
+  dance(); // sensor calibration
+  //speed_calibrate(40,80);
+  //rotation_calibrate(40,80);
+
 
   // display calibrated sensor values as a bar graph.
   do {
@@ -298,56 +302,76 @@ int main() {
       toggleRun();
       delay_ms(200);
     } 
-
+		
+		oldPosition = position;
     prevTime = millis();  //get the first time reading 		
     read_line_sensors(sensors, IR_EMITTERS_ON);
     update_bounds(sensors, minv, maxv);
     prev_position = position;         // compute line positon
     position = line_position(sensors, minv, maxv);
-
+		
     // offset needs deltaTime. add to deltaTime the amount of time it took 
     // to go from the first time reading till now.
     // we need to incorporate the past loop's run-time in addition to the 
     // part of the while loop traversed so far.
     deltaTime = deltaTime + millis() - prevTime;
+ 
+    // position = -2000 to 2000
+    derivative = (position - prev_position)/deltaTime;
+    integral += (position+prev_position)/2 * deltaTime; // tracks long runningposition offset
+    offset = 	position/50; //+ derivative/1000; //+ integral/10000;
+			
+			
+		if (run == 1) {	
+			short leftMotor = rotation + offset;
+      short rightMotor = rotation - offset;
+      // short motorsMax = (offset < 0) ? rightMotor : leftMotor;
+ 
+      leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
+      rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
+ 
+      // truncation on negatives for safety
+      leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
+      rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
 
-    offset = position;
-
-    if (run == 1) {
-      leftMotor = rotation + offset;
-      rightMotor = rotation - offset;
-
-      newTheta = oldTheta + (long)(motor2angle(leftMotor, rightMotor) * deltaTime);
+      newTheta = oldTheta + (int)( (motor2angle(leftMotor, rightMotor)/1000) * deltaTime);
 			
 			//upper bounds
-			if (newTheta >= 360) newTheta -= 360;
+			if (newTheta >= 360) newTheta %= 360;
  			//lower bound
  			if (newTheta < 0) newTheta += 360;
  						
       alpha = (oldTheta + newTheta)/2;
 
-      xPos += (long)Sin(alpha)*deltaTime*motor2speed(rotation);
-      yPos += (long)Cos(alpha)*deltaTime*motor2speed(rotation);
+      // long lolz =  /100000;
+      xPos += (long)(Sin(alpha)*deltaTime*motor2speed(rotation)/100000);
+      yPos += (long)(Cos(alpha)*deltaTime*motor2speed(rotation)/100000);
+			//if (lolz < 0) {
+			//	play_from_program_space(beep_button_middle);
+      delay_ms(100); 
+      //}
 
       oldTheta = newTheta;
-
       set_motors(leftMotor, rightMotor);
     }
-    delay_ms(3);
+     delay_ms(3);
     // new deltaTime
     deltaTime = millis() - prevTime;
 
     // debug code
-    lcd_goto_xy(0,1);
+    clear();
+    lcd_goto_xy(0,0);
     print_long(xPos);
-    lcd_goto_xy(0,2);
-    print_long(yPos);
+    lcd_goto_xy(1,1);
+    print_long(alpha);
+    delay_ms(100);
     //char display[8];
     //sprintf(display,"%i %i",xPos,yPos);
     //print(display);
-    clear();
-  } while(!off_track(0));
+    
+  } while(off_track(0) == 0); 
  
+ 	print("GO HOME");
 	// now i am off track
 	// return to origin
 	// we are going to need to stop motors
@@ -355,11 +379,11 @@ int main() {
 	int targetTheta = oldTheta;
 	long oldXPos = xPos;
 	long oldYPos = yPos;
-	xPos  = xPos/1000;
-	yPos = yPos/1000;
+	// xPos  = xPos/1000;
+	// yPos = yPos/1000;
 	
 	deltaTime = millis();
-	
+/*
 	//if 0 is "starting north", make it point "south" by rotating 180 degrees.
 	if (targetTheta < 180) {
 		targetTheta = (180 - targetTheta) + 180;
@@ -371,13 +395,13 @@ int main() {
   targetTheta = 90;
   set_motors(20, 0);
  	while (targetTheta > 0) {
-		targetTheta -= motor2speed(10)*deltaTime();
+		targetTheta -= motor2speed(10)*deltaTime;
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
   stopMotors();
   delay_ms(250);
-  
+*/ 
   //go up or down by yPos
   set_motors(rotation,rotation);
   deltaTime = millis();
@@ -422,8 +446,9 @@ int main() {
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
+
 	stopMotors();
-  delay_ms(250)
+  delay_ms(250);
 
   //et phone home
 	
