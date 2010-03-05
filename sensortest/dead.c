@@ -117,10 +117,10 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int i;
 	long sum = 0;
 	long count = 0;
-	int adjustment[5] = {-2000, -1000, 1, 1000, 2000};
+	int adjustment[5] = {-1000, -500, 0, 500, 1000};
 	for (i = 0; i < 5; i++) {
 		long min = (long)minv[i];   // tiny efficiency gain here
-		long dist = (100*((long)s[i]-min))/((long)maxv[i]-min); // 0-100
+		long dist = (10*((long)s[i]-min))/((long)maxv[i]-min); // 0-100
 		sum += dist*adjustment[i];  // 0-100's weighted by adjustment
 		count += dist;              // sum of 0-100's
 	}
@@ -275,12 +275,13 @@ int main() {
   long prev_position = 0;
   int offset = 0;
   long integral = 0;
-  int rotation = 18;
+  int rotation = 25;
   long xPos = 0;
   long yPos = 0;
-  int oldTheta = 0;
-  int newTheta = 0;
-  int alpha = 0;
+  long oldTheta = 0;
+  long newTheta = 0;
+  long marginalTheta = 0;
+  long alpha = 0;
   unsigned long prevTime = 0;
   unsigned long deltaTime = 0;
 
@@ -317,15 +318,15 @@ int main() {
     deltaTime = deltaTime + millis() - prevTime;
  
     // position = -2000 to 2000
-    derivative = (position - prev_position)/deltaTime;
-    integral += (position+prev_position)/2 * deltaTime; // tracks long runningposition offset
-    offset = 	position/50; //+ derivative/1000; //+ integral/10000;
+    derivative = position - oldPosition;
+    integral = position + oldPosition; // tracks long runningposition offset
+    offset = 	position/11 + derivative/30 + integral/50;
 			
 			
 		if (run == 1) {	
-			short leftMotor = rotation + offset;
-      short rightMotor = rotation - offset;
-      // short motorsMax = (offset < 0) ? rightMotor : leftMotor;
+		
+			int leftMotor = rotation + offset;
+      int rightMotor = rotation - offset;
  
       leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
@@ -334,40 +335,34 @@ int main() {
       leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
 
-      newTheta = oldTheta + (int)( (motor2angle(leftMotor, rightMotor)/1000) * deltaTime);
+			marginalTheta = (long)( motor2angle(leftMotor, rightMotor) * deltaTime);
 			
-			//upper bounds
-			if (newTheta >= 360) newTheta %= 360;
- 			//lower bound
- 			if (newTheta < 0) newTheta += 360;
- 						
-      alpha = (oldTheta + newTheta)/2;
-
-      // long lolz =  /100000;
-      xPos += (long)(Sin(alpha)*deltaTime*motor2speed(rotation)/100000);
-      yPos += (long)(Cos(alpha)*deltaTime*motor2speed(rotation)/100000);
-			//if (lolz < 0) {
-			//	play_from_program_space(beep_button_middle);
-      delay_ms(100); 
-      //}
-
-      oldTheta = newTheta;
+			newTheta = oldTheta + marginalTheta;
+			
+			alpha = newTheta;
+      
+      xPos += (long)((Sin(alpha/1000)*deltaTime*motor2speed(rotation))/1000000);
+      yPos += (long)((Cos(alpha/1000)*deltaTime*motor2speed(rotation))/1000000);
+      
+      oldTheta = alpha;
+      
       set_motors(leftMotor, rightMotor);
+      
     }
-     delay_ms(3);
-    // new deltaTime
-    deltaTime = millis() - prevTime;
 
     // debug code
     clear();
     lcd_goto_xy(0,0);
-    print_long(xPos);
+    print_long(marginalTheta);
     lcd_goto_xy(1,1);
-    print_long(alpha);
-    delay_ms(100);
+    print_long(alpha/1000);
+    delay_ms(1);
     //char display[8];
     //sprintf(display,"%i %i",xPos,yPos);
     //print(display);
+    
+    // new deltaTime
+    deltaTime = millis() - prevTime;
     
   } while(off_track(0) == 0); 
  
