@@ -91,7 +91,7 @@ void load_custom_characters() {
 }
 
 // This function displays the sensor readings using a bar graph.
-void display_bars(const unsigned int *s, const unsigned int *minv, const unsigned int* maxv) { //TODO: Factor to use globals.
+void display_bars(const unsigned int *s, const unsigned int *minv, const unsigned int* maxv) {
 	// Initialize the array of characters that we will use for the
 	// graph. Using the space, and character 255 (a full black box).
 	unsigned char i;
@@ -103,7 +103,7 @@ void display_bars(const unsigned int *s, const unsigned int *minv, const unsigne
 	}
 }
 
-void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv) { //TODO: Factor this to use globals.
+void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	int i;
 	for (i=0; i<5; i++) {
 		unsigned int val = s[i];
@@ -121,30 +121,26 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 	for (i = 0; i < 5; i++) {
 		long min = (long)minv[i];   // tiny efficiency gain here
 		long dist = (10*((long)s[i]-min))/((long)maxv[i]-min); // 0-100
-		sum += dist*adjustment[i];  // 0-100's weighted by adjustment
+		sum += dist*adjustment[i];  // 0-100's weighted by adjustment amount
 		count += dist;              // sum of 0-100's
 	}
-	return sum/count; // between -2000 and +2000 //TODO: That's wrong, innit? Should be -1k to 1k, I bet
+	return sum/count; // between -1000 and +1000
 }
 
-int off_track(center_only) { //TODO: factor to be a for loop in either case
-  if(center_only){
-    int min = minv[2];
-    long dist = (100*((long)sensors[2]-min))/((long)maxv[2]-min);
-    if (dist > 50){
-      return 0;
-    } else {
-      return 1;
-    }
+// Returns 1 if off the line, 0 if on
+int off_track(center_only) {
+  int i = 0;
+  int count = 5;
+  if(center_only){ // Sets loop to look only at center sensor
+    i = 2;
+    count = 3;
   }
-  int i;	
-  for(i = 0; i < 5; i++){       // sensors.each
+  for(; i < count; i++){
     int min = minv[i];
-    long dist = (100*((long)sensors[i]-min))/((long)maxv[i]-min); //0-100
-    if(dist > 10)
-      return 0;
+    long dist = (100*((long)sensors[i]-min))/((long)maxv[i]-min); // 0-100
+    if (dist > 25) { return 0; } // Threshold for declaring not-a-line
   }
-  return 1;
+  return 1; // Fell through the guard, thus off the line
 }
 /* TODO: Make this work properly and insert into constants
 void speed_calibrate(int first_speed, int second_speed){
@@ -294,10 +290,7 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); // sensor calibration
   //speed_calibrate(20,40); //TODO: Make these valid
-  //rotation_calibrate(20,40); //May wipe this one
 
-
-  // display calibrated sensor values as a bar graph.
   do {
     // button press adjustments (RFCT)
     if (button_is_pressed(BUTTON_B)) {
@@ -364,32 +357,33 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
     deltaTime = millis() - prevTime;
     
   } while(off_track(0) == 0); //TODO: Code smell here.
- 	rotation = 40;
 
- 	clear(); //TODO: Factor clear/print combos, maybe
+	stopMotors();
+ 	rotation = 40;
+  
+ 	clear();
  	print("GO HOME");
-	
-	set_motors(0,0);	//turn motors off //TODO: Stop_motors, no?
-	int targetTheta = oldTheta/1000; //TODO: A smell of scale. Clearly oldTheta should be /1000 in the first place, right?
+
+	int targetTheta = oldTheta/1000; // Reduce tracking-mode theta to scale
 	
 	//if it's a positive angle, subtract it from 180 and then make the right motor neg 
 	// and the left motor positive to spin clockwise.
 	if (targetTheta > 0 && targetTheta <= 180) { //TODO: Clean up the logic/verify truth
-			targetTheta = 180 - targetTheta;
-			leftMotor = rotation;
-			rightMotor = -rotation;
+    targetTheta = 180 - targetTheta;
+    leftMotor = rotation;
+    rightMotor = -rotation;
 	} else if (targetTheta < -180) {
-			targetTheta = targetTheta + 360;
-			leftMotor = rotation;
-			rightMotor = -rotation;
+    targetTheta = targetTheta + 360;
+    leftMotor = rotation;
+    rightMotor = -rotation;
 	} else if (targetTheta > 180) {
-			targetTheta = 360 - targetTheta;
-			leftMotor = -rotation;
-			rightMotor = rotation;
+    targetTheta = 360 - targetTheta;
+    leftMotor = -rotation;
+    rightMotor = rotation;
 	} else {
-			targetTheta = 180 + targetTheta;
-			leftMotor = -rotation;
-			rightMotor = rotation;
+    targetTheta = 180 + targetTheta;
+    leftMotor = -rotation;
+    rightMotor = rotation;
 	}  
  
  	deltaTime = millis() - deltaTime;
@@ -414,7 +408,7 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
   clear();
   print("LOLZ");
 
-  //flip the yPos value if negative
+  //flip the yPos value if negative //TODO: Smell
   if (yPos < 0) yPos = -yPos;
   
   long ySeconds = (yPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100
