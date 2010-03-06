@@ -413,21 +413,19 @@ int main() {
   stopMotors();
   clear();
   print("LOLZ");
-/* 
-  //go up or down by yPos
-  set_motors(rotation,rotation);
-  deltaTime = millis();
+
   //flip the yPos value if negative
   if (yPos < 0) yPos = -yPos;
   
-  while (yPos > 0) {
-  	yPos -= motor2speed(rotation) * deltaTime;
+  long ySeconds = (yPos*100)/motor2speed(rotation);
+	  
+  for (i = 0; i < ySeconds; ++i) {
+  	set_motors(rotation,rotation);
   	delay_ms(10);
-  	deltaTime = millis() - deltaTime;
   }
+
   stopMotors();
-  delay_ms(250);
-  
+ /* 
   //turn by 90 degrees to the right or left.
   targetTheta = 90;
   
