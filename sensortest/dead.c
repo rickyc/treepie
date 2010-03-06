@@ -266,7 +266,7 @@ void initialize() {
 
 // This is the main function, where the code starts. All C programs
 // must have a main() function defined somewhere.
-int main() {
+int main() { //TODO: If worth it/desired, factor main into mostly function calls and returning values that set the new loop-thru value
   
   // line position relative to center
   long position = 0;
@@ -396,7 +396,7 @@ int main() {
  	clear();
  	print_long(targetTheta/1000);
  	
- 	//turn the robot
+ 	//turn the robot //TODO: Clean up functionality here, maybe to the point of being all function calls
  	long secondsToTurn = motor2angle(leftMotor,rightMotor); //TODO: Verify units
 	secondsToTurn = (100*targetTheta)/secondsToTurn;
 	clear();
