@@ -244,7 +244,7 @@ void rotation_calibrate(int first_speed, int second_speed){
 void dance() {
   int counter;
   for(counter=0;counter<80;counter++) {
-    if(counter < 20 || counter >= 60) { set_motors(40,-40);
+    if(counter <= 20 || counter >= 60) { set_motors(40,-40);
     } else { set_motors(-40,40); }
     // Since our counter runs to 80, the total delay will be 80*20 = 1600 ms.
     read_line_sensors(sensors, IR_EMITTERS_ON);
@@ -272,10 +272,12 @@ int main() {
   long position = 0;
   long oldPosition = 0;
   long derivative = 0;
-  long prev_position = 0;
   int offset = 0;
+  int leftMotor = 0;
+  int rightMotor = 0;
   long integral = 0;
   int rotation = 25;
+  int i;
   long xPos = 0;
   long yPos = 0;
   long oldTheta = 0;
@@ -304,11 +306,10 @@ int main() {
       delay_ms(200);
     } 
 		
-		oldPosition = position;
+		oldPosition = position;	// compute line positon
     prevTime = millis();  //get the first time reading 		
     read_line_sensors(sensors, IR_EMITTERS_ON);
     update_bounds(sensors, minv, maxv);
-    prev_position = position;         // compute line positon
     position = line_position(sensors, minv, maxv);
 		
     // offset needs deltaTime. add to deltaTime the amount of time it took 
@@ -365,52 +366,70 @@ int main() {
     deltaTime = millis() - prevTime;
     
   } while(off_track(0) == 0); 
- 
+ 	rotation = 40;
+ 	clear();
  	print("GO HOME");
 	// now i am off track
 	// return to origin
 	// we are going to need to stop motors
-	set_motors(0,0);	//turn motors off
-	int targetTheta = oldTheta;
-	long oldXPos = xPos;
-	long oldYPos = yPos;
-	// xPos  = xPos/1000;
-	// yPos = yPos/1000;
 	
-	deltaTime = millis();
-/*
-	//if 0 is "starting north", make it point "south" by rotating 180 degrees.
-	if (targetTheta < 180) {
-		targetTheta = (180 - targetTheta) + 180;
-		set_motors(rotation, 0);
-	}
-  stopMotors();
-  
-  //now hit theta = 270 to point straight downward towards the origin.
-  targetTheta = 90;
-  set_motors(20, 0);
- 	while (targetTheta > 0) {
-		targetTheta -= motor2speed(10)*deltaTime;
+	set_motors(0,0);	//turn motors off
+	int targetTheta = oldTheta/1000;
+	
+	//if it's a positive angle, subtract it from 180 and then make the right motor neg 
+	// and the left motor positive to spin clockwise.
+	if (targetTheta > 0 && targetTheta <= 180) {
+			targetTheta = 180 - targetTheta;
+			leftMotor = rotation;
+			rightMotor = -rotation;
+	} else if (targetTheta < -180) {
+			targetTheta = targetTheta + 360;
+			leftMotor = rotation;
+			rightMotor = -rotation;
+	} else if (targetTheta > 180) {
+			targetTheta = 360 - targetTheta;
+			leftMotor = -rotation;
+			rightMotor = rotation;
+	} else {
+			targetTheta = 180 + targetTheta;
+			leftMotor = -rotation;
+			rightMotor = rotation;
+	}  
+ 
+ 	deltaTime = millis() - deltaTime;
+ 	clear();
+ 	print_long(targetTheta/1000);
+ 	
+ 	//turn the robot
+ 	long secondsToTurn = motor2angle(leftMotor,rightMotor);
+	secondsToTurn = (100*targetTheta)/secondsToTurn;
+	clear();
+	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;	
+	
+	print_long(secondsToTurn);
+	lcd_goto_xy(1,1);
+	print_long(targetTheta/1000);
+	
+	for(i = 0; i < secondsToTurn; ++i) {
+		set_motors(leftMotor, rightMotor);
 		delay_ms(10);
-		deltaTime = millis() - deltaTime;
 	}
   stopMotors();
-  delay_ms(250);
-*/ 
-  //go up or down by yPos
-  set_motors(rotation,rotation);
-  deltaTime = millis();
+  clear();
+  print("LOLZ");
+
   //flip the yPos value if negative
   if (yPos < 0) yPos = -yPos;
   
-  while (yPos > 0) {
-  	yPos -= motor2speed(rotation) * deltaTime;
+  long ySeconds = (yPos*100)/motor2speed(rotation);
+	  
+  for (i = 0; i < ySeconds; ++i) {
+  	set_motors(rotation,rotation);
   	delay_ms(10);
-  	deltaTime = millis() - deltaTime;
   }
+
   stopMotors();
-  delay_ms(250);
-  
+ /* 
   //turn by 90 degrees to the right or left.
   targetTheta = 90;
   
@@ -446,6 +465,6 @@ int main() {
   delay_ms(250);
 
   //et phone home
-	
+*/	
   return 0;
 }
