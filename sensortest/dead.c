@@ -91,7 +91,7 @@ void load_custom_characters() {
 }
 
 // This function displays the sensor readings using a bar graph.
-void display_bars(const unsigned int *s, const unsigned int *minv, const unsigned int* maxv) {
+void display_bars(const unsigned int *s, const unsigned int *minv, const unsigned int* maxv) { //TODO: Factor to use globals.
 	// Initialize the array of characters that we will use for the
 	// graph. Using the space, and character 255 (a full black box).
 	unsigned char i;
@@ -103,7 +103,7 @@ void display_bars(const unsigned int *s, const unsigned int *minv, const unsigne
 	}
 }
 
-void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv) { //TODO: Factor this to use globals.
 	int i;
 	for (i=0; i<5; i++) {
 		unsigned int val = s[i];
@@ -124,10 +124,10 @@ long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
 		sum += dist*adjustment[i];  // 0-100's weighted by adjustment
 		count += dist;              // sum of 0-100's
 	}
-	return sum/count; // between -2000 and +2000
+	return sum/count; // between -2000 and +2000 //TODO: That's wrong, innit? Should be -1k to 1k, I bet
 }
 
-int off_track(center_only) {
+int off_track(center_only) { //TODO: factor to be a for loop in either case
   if(center_only){
     int min = minv[2];
     long dist = (100*((long)sensors[2]-min))/((long)maxv[2]-min);
@@ -146,7 +146,7 @@ int off_track(center_only) {
   }
   return 1;
 }
-/*
+/* TODO: Make this work properly and insert into constants
 void speed_calibrate(int first_speed, int second_speed){
   clear();
   print("Speed Test");
@@ -293,8 +293,8 @@ int main() {
 	idle_until_button_pressed(BUTTON_B);
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); // sensor calibration
-  //speed_calibrate(40,80);
-  //rotation_calibrate(40,80);
+  //speed_calibrate(20,40); //TODO: Make these valid
+  //rotation_calibrate(20,40); //May wipe this one
 
 
   // display calibrated sensor values as a bar graph.
@@ -341,7 +341,7 @@ int main() {
 			
 			alpha = newTheta;
       
-      xPos += (long)((Sin(alpha/1000)*deltaTime*motor2speed(rotation))/1000000);
+      xPos += (long)((Sin(alpha/1000)*deltaTime*motor2speed(rotation))/1000000); //TODO: Verify and document
       yPos += (long)((Cos(alpha/1000)*deltaTime*motor2speed(rotation))/1000000);
       
       oldTheta = newTheta;
@@ -363,18 +363,18 @@ int main() {
     // new deltaTime
     deltaTime = millis() - prevTime;
     
-  } while(off_track(0) == 0); 
+  } while(off_track(0) == 0); //TODO: Code smell here.
  	rotation = 40;
- 	clear();
 
+ 	clear(); //TODO: Factor clear/print combos, maybe
  	print("GO HOME");
 	
-	set_motors(0,0);	//turn motors off
-	int targetTheta = oldTheta/1000;
+	set_motors(0,0);	//turn motors off //TODO: Stop_motors, no?
+	int targetTheta = oldTheta/1000; //TODO: A smell of scale. Clearly oldTheta should be /1000 in the first place, right?
 	
 	//if it's a positive angle, subtract it from 180 and then make the right motor neg 
 	// and the left motor positive to spin clockwise.
-	if (targetTheta > 0 && targetTheta <= 180) {
+	if (targetTheta > 0 && targetTheta <= 180) { //TODO: Clean up the logic/verify truth
 			targetTheta = 180 - targetTheta;
 			leftMotor = rotation;
 			rightMotor = -rotation;
@@ -397,7 +397,7 @@ int main() {
  	print_long(targetTheta/1000);
  	
  	//turn the robot
- 	long secondsToTurn = motor2angle(leftMotor,rightMotor);
+ 	long secondsToTurn = motor2angle(leftMotor,rightMotor); //TODO: Verify units
 	secondsToTurn = (100*targetTheta)/secondsToTurn;
 	clear();
 	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;	
@@ -406,7 +406,7 @@ int main() {
 	lcd_goto_xy(1,1);
 	print_long(targetTheta/1000);
 	
-	for(i = 0; i < secondsToTurn; ++i) {
+	for(i = 0; i < secondsToTurn; ++i) { //TODO: Factor "Turn Xdegrees" into a fn
 		set_motors(leftMotor, rightMotor);
 		delay_ms(10);
 	}
@@ -417,9 +417,9 @@ int main() {
   //flip the yPos value if negative
   if (yPos < 0) yPos = -yPos;
   
-  long ySeconds = (yPos*100)/motor2speed(rotation);
+  long ySeconds = (yPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100
 	  
-  for (i = 0; i < ySeconds; ++i) {
+  for (i = 0; i < ySeconds; ++i) { //TODO: Factor into "Travel X distance" fn
   	set_motors(rotation,rotation);
   	delay_ms(10);
   }
