@@ -277,6 +277,7 @@ int main() {
   int rightMotor = 0;
   long integral = 0;
   int rotation = 25;
+  int i;
   long xPos = 0;
   long yPos = 0;
   long oldTheta = 0;
@@ -315,7 +316,6 @@ int main() {
     // to go from the first time reading till now.
     // we need to incorporate the past loop's run-time in addition to the 
     // part of the while loop traversed so far.
-
     deltaTime = deltaTime + millis() - prevTime;
  
     // position = -2000 to 2000
@@ -325,7 +325,6 @@ int main() {
 			
 			
 		if (run == 1) {	
-		
 			leftMotor = rotation + offset;
       rightMotor = rotation - offset;
  
@@ -348,7 +347,6 @@ int main() {
       oldTheta = newTheta;
       
       set_motors(leftMotor, rightMotor);
-      
     }
 
     // debug code
@@ -366,22 +364,28 @@ int main() {
     deltaTime = millis() - prevTime;
     
   } while(off_track(0) == 0); 
- 	
+ 	rotation = 40;
  	clear();
+
  	print("GO HOME");
-	// now i am off track
-	// return to origin
-	// we are going to need to stop motors
 	
 	set_motors(0,0);	//turn motors off
 	int targetTheta = oldTheta/1000;
 	
 	//if it's a positive angle, subtract it from 180 and then make the right motor neg 
 	// and the left motor positive to spin clockwise.
-	if (targetTheta > 0) {
+	if (targetTheta > 0 && targetTheta <= 180) {
 			targetTheta = 180 - targetTheta;
 			leftMotor = rotation;
 			rightMotor = -rotation;
+	} else if (targetTheta < -180) {
+			targetTheta = targetTheta + 360;
+			leftMotor = rotation;
+			rightMotor = -rotation;
+	} else if (targetTheta > 180) {
+			targetTheta = 360 - targetTheta;
+			leftMotor = -rotation;
+			rightMotor = rotation;
 	} else {
 			targetTheta = 180 + targetTheta;
 			leftMotor = -rotation;
@@ -389,33 +393,39 @@ int main() {
 	}  
  
  	deltaTime = millis() - deltaTime;
- 	targetTheta *= 1000;
  	clear();
  	print_long(targetTheta/1000);
+ 	
  	//turn the robot
- 	long c = motor2angle(leftMotor,rightMotor);
- 	long invC = 1/c;
- 	c = invC * targetTheta;
-	int ac;
-	for(ac=0;ac<c;ac++) {
+ 	long secondsToTurn = motor2angle(leftMotor,rightMotor);
+	secondsToTurn = (100*targetTheta)/secondsToTurn;
+	clear();
+	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;	
+	
+	print_long(secondsToTurn);
+	lcd_goto_xy(1,1);
+	print_long(targetTheta/1000);
+	
+	for(i = 0; i < secondsToTurn; ++i) {
 		set_motors(leftMotor, rightMotor);
+		delay_ms(10);
 	}
   stopMotors();
-/* 
-  //go up or down by yPos
-  set_motors(rotation,rotation);
-  deltaTime = millis();
+  clear();
+  print("LOLZ");
+
   //flip the yPos value if negative
   if (yPos < 0) yPos = -yPos;
   
-  while (yPos > 0) {
-  	yPos -= motor2speed(rotation) * deltaTime;
+  long ySeconds = (yPos*100)/motor2speed(rotation);
+	  
+  for (i = 0; i < ySeconds; ++i) {
+  	set_motors(rotation,rotation);
   	delay_ms(10);
-  	deltaTime = millis() - deltaTime;
   }
+
   stopMotors();
-  delay_ms(250);
-  
+ /* 
   //turn by 90 degrees to the right or left.
   targetTheta = 90;
   
