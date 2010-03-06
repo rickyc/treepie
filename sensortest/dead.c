@@ -68,17 +68,17 @@ void load_custom_characters() {
 		0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000,
 		0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111
 	};
-
+  
 	// This character is a musical note.
 	static const prog_char note[] PROGMEM = {
 		0b00100, 0b00110, 0b00101, 0b00101, 0b00100, 0b11100, 0b11100, 0b00000,
 	};
-
+  
 	// This character is a back arrow.
 	static const prog_char back_arrow[] PROGMEM = {
 		0b00000, 0b00010, 0b00001, 0b00101, 0b01001, 0b11110, 0b01000, 0b00100,
 	};
-
+  
 	lcd_load_custom_character(levels+0,0); // no offset, e.g. one bar
 	lcd_load_custom_character(levels+1,1); // two bars
 	lcd_load_custom_character(levels+2,2); // etc...
@@ -113,7 +113,7 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 }
 
 // Return line position
-long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) {
+long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) { //TODO: Ref as globals
 	int i;
 	long sum = 0;
 	long count = 0;
@@ -154,9 +154,9 @@ void speed_calibrate(int first_speed, int second_speed){
   int second_mark_time = 0;
   
 	idle_until_button_pressed(BUTTON_A);
-
+  
   set_motors(first_speed, first_speed);
-
+  
   while(1) {
     read_line_sensors(sensors, IR_EMITTERS_ON);
     if(off_track(0) && !first_mark_time){
@@ -171,9 +171,9 @@ void speed_calibrate(int first_speed, int second_speed){
       //requires a user rotate here
     }
   }
-
+  
 	idle_until_button_pressed(BUTTON_A);
- 
+  
   first_mark_time = second_mark_time = 0;
   set_motors(second_speed, second_speed);
   while(1){
@@ -192,50 +192,8 @@ void speed_calibrate(int first_speed, int second_speed){
   //do some math to figure out the calibration coefficients from second_speed_time and first_speed_time
   return;
 }
-
-void rotation_calibrate(int first_speed, int second_speed){
-  clear();
-  print("Rotation Test");
-  lcd_goto_xy(0,1);
-  
-  int first_rotation_time = 0;
-  int second_rotation_time = 0;
-  int first_cross_time = 0;
-  int second_cross_time = 0;
-  
-  while(!button_is_pressed(BUTTON_A)) {}
-  set_motors(first_speed, -first_speed);
-  while(1){
-    read_line_sensors(sensors, IR_EMITTERS_ON);
-    if(off_track(1) && !first_cross_time){
-      first_cross_time = millis();
-    } else if (off_track(1) && !second_cross_time && (millis() - first_cross_time > 200)){
-      second_cross_time = millis();
-    }
-    if(second_cross_time){
-      first_rotation_time = second_cross_time - first_cross_time;
-      break;
-    }
-  }
-  first_cross_time = second_cross_time = 0;
-  set_motors(second_speed,second_speed);
-  while(1){
-    read_line_sensors(sensors, IR_EMITTERS_ON);
-    if(off_track(1) && !first_cross_time){
-      first_cross_time = millis();
-    } else if (off_track(1) && !second_cross_time && (millis() - first_cross_time > 200)){
-      second_cross_time = millis();
-    }
-    if(second_cross_time){
-      stopMotors();
-      second_rotation_time = second_cross_time - first_cross_time;
-      break;
-    }
-  }
-  //do calculation math here, then save the constants appropriately
-  return;
-}
 */
+
 // Make a little dance: Turn left and right
 void dance() {
   int counter;
@@ -282,52 +240,51 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
   long alpha = 0;
   unsigned long prevTime = 0;
   unsigned long deltaTime = 0;
-
+  
   // set up the 3pi, and wait for B button to be pressed
   initialize();
-
+  
 	idle_until_button_pressed(BUTTON_B);
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); // sensor calibration
   //speed_calibrate(20,40); //TODO: Make these valid
-
+  
   do {
     // button press adjustments (RFCT)
     if (button_is_pressed(BUTTON_B)) {
       play_from_program_space(beep_button_middle);
       toggleRun();
       delay_ms(200);
-    } 
+    }
 		
 		oldPosition = position;	// compute line positon
-    prevTime = millis();  //get the first time reading 		
+    prevTime = millis();  //get the first time reading
     read_line_sensors(sensors, IR_EMITTERS_ON);
     update_bounds(sensors, minv, maxv);
     position = line_position(sensors, minv, maxv);
 		
-    // offset needs deltaTime. add to deltaTime the amount of time it took 
+    // offset needs deltaTime. add to deltaTime the amount of time it took
     // to go from the first time reading till now.
-    // we need to incorporate the past loop's run-time in addition to the 
+    // we need to incorporate the past loop's run-time in addition to the
     // part of the while loop traversed so far.
     deltaTime = deltaTime + millis() - prevTime;
- 
-    // position = -2000 to 2000
+    
+    // position = -1000 to 1000
     derivative = position - oldPosition;
     integral = position + oldPosition; // tracks long runningposition offset
     offset = 	position/11 + derivative/30 + integral/50;
-			
-			
+    
 		if (run == 1) {	
 			leftMotor = rotation + offset;
       rightMotor = rotation - offset;
- 
+      
       leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
- 
+      
       // truncation on negatives for safety
       leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
-
+      
 			marginalTheta = (long)( motor2angle(leftMotor, rightMotor) * deltaTime);
 			
 			newTheta = oldTheta + marginalTheta;
@@ -335,13 +292,13 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
 			alpha = newTheta;
       
       xPos += (long)((Sin(alpha/1000)*deltaTime*motor2speed(rotation))/1000000); //TODO: Verify and document
-      yPos += (long)((Cos(alpha/1000)*deltaTime*motor2speed(rotation))/1000000);
+      yPos += (long)((Cos(alpha/1000)*deltaTime*motor2speed(rotation))/1000000); //TODO: Needsdoc
       
       oldTheta = newTheta;
       
       set_motors(leftMotor, rightMotor);
     }
-
+    
     // debug code
     clear();
     lcd_goto_xy(0,0);
@@ -357,13 +314,13 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
     deltaTime = millis() - prevTime;
     
   } while(off_track(0) == 0); //TODO: Code smell here.
-
+  
 	stopMotors();
  	rotation = 40;
   
  	clear();
  	print("GO HOME");
-
+  
 	int targetTheta = oldTheta/1000; // Reduce tracking-mode theta to scale
 	
 	//if it's a positive angle, subtract it from 180 and then make the right motor neg 
@@ -394,10 +351,10 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
  	long secondsToTurn = motor2angle(leftMotor,rightMotor); //TODO: Verify units
 	secondsToTurn = (100*targetTheta)/secondsToTurn;
 	clear();
-	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;	
+	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //TODO: needsdoc
 	
 	print_long(secondsToTurn);
-	lcd_goto_xy(1,1);
+	lcd_goto_xy(1,1); //TODO: Factor "clear(); lcd_goto_xy(x,y); printf(val);" into print_xy(x,y,str,val);
 	print_long(targetTheta/1000);
 	
 	for(i = 0; i < secondsToTurn; ++i) { //TODO: Factor "Turn Xdegrees" into a fn
@@ -412,14 +369,14 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
   if (yPos < 0) yPos = -yPos;
   
   long ySeconds = (yPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100
-	  
+  
   for (i = 0; i < ySeconds; ++i) { //TODO: Factor into "Travel X distance" fn
   	set_motors(rotation,rotation);
   	delay_ms(10);
   }
 
   stopMotors();
- /* 
+ /*  //TODO: Needsdoc
   //turn by 90 degrees to the right or left.
   targetTheta = 90;
   
@@ -455,6 +412,6 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
   delay_ms(250);
 
   //et phone home
-*/	
+*/
   return 0;
 }
