@@ -325,7 +325,6 @@ int main() {
 			
 			
 		if (run == 1) {	
-		
 			int leftMotor = rotation + offset;
       int rightMotor = rotation - offset;
  
@@ -348,7 +347,6 @@ int main() {
       oldTheta = newTheta;
       
       set_motors(leftMotor, rightMotor);
-      
     }
 
     // debug code
@@ -368,10 +366,8 @@ int main() {
   } while(off_track(0) == 0); 
  	rotation = 40;
  	clear();
+
  	print("GO HOME");
-	// now i am off track
-	// return to origin
-	// we are going to need to stop motors
 	
 	set_motors(0,0);	//turn motors off
 	int targetTheta = oldTheta/1000;
