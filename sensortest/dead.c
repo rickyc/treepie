@@ -127,7 +127,7 @@ long line_position() {
 	return sum/count; // between -1000 and +1000
 }
 
-// Returns 1 if off the line, 0 if on
+// Returns 1 if off the line, 0 if on the line
 int off_track(center_only) {
   int i = 0;
   int count = 5;
@@ -142,40 +142,14 @@ int off_track(center_only) {
   }
   return 1; // Fell through the guard, thus off the line
 }
-// TODO: Make this work properly and insert into constants
-void speed_calibrate(int first_speed, int second_speed){
-  int first_speed_time = 0;
-  int second_speed_time = 0;
+
+int two_line_time(speed){
+  idle_until_button_pressed(BUTTON_A);
+  set_motors(speed, speed);
+  int speed_time = 0;
   int first_mark_time = 0;
   int second_mark_time = 0;
-  
-  clear();
-  lcd_goto_xy(0,0);
-  print("Speed Test");
-  
-	idle_until_button_pressed(BUTTON_A);
-  set_motors(first_speed, first_speed);
-  
-  while(1) {
-    read_line_sensors(sensors, IR_EMITTERS_ON);
-    if(off_track(0) && !first_mark_time){
-      first_mark_time = millis();
-    } else if(off_track(0) && !second_mark_time && (millis() - first_mark_time > 200)) {
-      second_mark_time = millis();
-    }
-    if (second_mark_time){
-      stopMotors();
-      first_speed_time = second_mark_time - first_mark_time;
-      break;
-    }
-  }
-  //requires a user rotate here
-  lcd_goto_xy(0,1);
-  print("Test 2");
-	idle_until_button_pressed(BUTTON_A);
-  
-  first_mark_time = second_mark_time = 0;
-  set_motors(second_speed, second_speed);
+
   while(1){
     read_line_sensors(sensors, IR_EMITTERS_ON);
     if(off_track(0) && !first_mark_time){
@@ -185,11 +159,31 @@ void speed_calibrate(int first_speed, int second_speed){
     }
     if (second_mark_time){
       stopMotors();
-      second_speed_time = second_mark_time - first_mark_time;
+      speed_time = second_mark_time - first_mark_time;
       break;
     }
   }
+  return speed_time;
+}
+
+// Automatically determines values for motor2speed internal constants
+void speed_calibrate(int first_speed, int second_speed){
+  int first_speed_time;
+  int second_speed_time;
+  
+  clear();
+  lcd_goto_xy(0,0);
+  print("Speed Test");
+  first_speed_time = two_line_time(first_speed);
+  
+  //requires a user rotate here
+  lcd_goto_xy(0,1);
+  print("Test 2");
+  second_speed_time = two_line_time(second_speed);
+  
   //do some math to figure out the calibration coefficients from second_speed_time and first_speed_time
+  
+  clear();
   return;
 }
 
@@ -219,7 +213,8 @@ void initialize() {
 
 // This is the main function, where the code starts. All C programs
 // must have a main() function defined somewhere.
-int main() { //TODO: If worth it/desired, factor main into mostly function calls and returning values that set the new loop-thru value
+int main() {  //TODO: If worth it/desired, factor main into mostly function
+              //calls and returning values that set the new loop-thru value
   
   // line position relative to center
   long position = 0;
@@ -246,10 +241,9 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
 	idle_until_button_pressed(BUTTON_B);
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); // sensor calibration
-  //speed_calibrate(20,40); //TODO: Make these valid
+  //speed_calibrate(20,40);
   
   do {
-    // button press adjustments (RFCT)
     if (button_is_pressed(BUTTON_B)) {
       play_from_program_space(beep_button_middle);
       toggleRun();
