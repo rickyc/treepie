@@ -12,6 +12,8 @@
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
 #include "3pi_kinematics.h"
+#include "calibration.h"
+
 #define MIN_MOTOR_SPEED 0
 #define MAX_MOTOR_SPEED 255
 
@@ -186,26 +188,7 @@ void speed_calibrate(int first_speed, int second_speed){
   clear();
   return;
 }
-////////////////////////////////////////////////////////////
-int cM2S_Num = 238;
-int cM2S_Denom = 5;
-int cM2S_Intercept = -330;
-long motor2speed(int v) {
-  int r = ( (v>0)? v : -v ) * cM2S_Num/cM2S_Denom + cM2S_Intercept;
-  r = (r>0) ? r : 0;
-  if (v>=0) {
-    return (long)(r);
-  } else {
-    return (long)(-r);
-  }
-}
 
-long motor2angle(int left_motor, int right_motor) {
-  long left_vel = motor2speed(left_motor);
-  long right_vel = motor2speed(right_motor);
-  return (left_vel-right_vel)*c360/c5152;
-}
-////////////////////////////////////////////////////////////
 // Make a little dance: Turn left and right
 void dance() {
   int counter;
