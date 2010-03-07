@@ -113,14 +113,14 @@ void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv
 }
 
 // Return line position
-long line_position(unsigned int *s, unsigned int *minv, unsigned int *maxv) { //TODO: Ref as globals
+long line_position() {
 	int i;
 	long sum = 0;
 	long count = 0;
 	int adjustment[5] = {-1000, -500, 0, 500, 1000};
 	for (i = 0; i < 5; i++) {
 		long min = (long)minv[i];   // tiny efficiency gain here
-		long dist = (10*((long)s[i]-min))/((long)maxv[i]-min); // 0-100
+		long dist = (10*((long)sensors[i]-min))/((long)maxv[i]-min); // 0-100
 		sum += dist*adjustment[i];  // 0-100's weighted by adjustment amount
 		count += dist;              // sum of 0-100's
 	}
@@ -261,7 +261,7 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
     prevTime = millis();  //get the first time reading
     read_line_sensors(sensors, IR_EMITTERS_ON);
     update_bounds(sensors, minv, maxv);
-    position = line_position(sensors, minv, maxv);
+    position = line_position();
 		
     // offset needs deltaTime. add to deltaTime the amount of time it took
     // to go from the first time reading till now.
@@ -312,8 +312,7 @@ int main() { //TODO: If worth it/desired, factor main into mostly function calls
     
     // new deltaTime
     deltaTime = millis() - prevTime;
-    
-  } while(off_track(0) == 0); //TODO: Code smell here.
+  } while(!off_track(0));
   
 	stopMotors();
  	rotation = 40;
