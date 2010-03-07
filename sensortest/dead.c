@@ -142,19 +142,18 @@ int off_track(center_only) {
   }
   return 1; // Fell through the guard, thus off the line
 }
-/* TODO: Make this work properly and insert into constants
+// TODO: Make this work properly and insert into constants
 void speed_calibrate(int first_speed, int second_speed){
-  clear();
-  print("Speed Test");
-  lcd_goto_xy(0,1);
-  
   int first_speed_time = 0;
   int second_speed_time = 0;
   int first_mark_time = 0;
   int second_mark_time = 0;
   
-	idle_until_button_pressed(BUTTON_A);
+  clear();
+  lcd_goto_xy(0,0);
+  print("Speed Test");
   
+	idle_until_button_pressed(BUTTON_A);
   set_motors(first_speed, first_speed);
   
   while(1) {
@@ -168,10 +167,11 @@ void speed_calibrate(int first_speed, int second_speed){
       stopMotors();
       first_speed_time = second_mark_time - first_mark_time;
       break;
-      //requires a user rotate here
     }
   }
-  
+  //requires a user rotate here
+  lcd_goto_xy(0,1);
+  print("Test 2");
 	idle_until_button_pressed(BUTTON_A);
   
   first_mark_time = second_mark_time = 0;
@@ -192,7 +192,6 @@ void speed_calibrate(int first_speed, int second_speed){
   //do some math to figure out the calibration coefficients from second_speed_time and first_speed_time
   return;
 }
-*/
 
 // Make a little dance: Turn left and right
 void dance() {
