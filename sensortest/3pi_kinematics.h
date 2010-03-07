@@ -117,7 +117,7 @@ long Cos(long angle) {
 // speed of 457 mm/s (or 4570 units/s).
 // This is for robot 493 with fully charged batteries.
 // your mileage (or millimeterage) may vary.
-long motor2speed(int v) {
+long original_motor2speed(int v) {
   // v*4.7682 - 33 mm/s
   // This is robot 493 with fully charged batteries.
   // your mileage (millimeterage) may vary
@@ -133,13 +133,13 @@ long motor2speed(int v) {
 // converts the two motor speeds to
 // a rotational speed in degrees per second.
 // Positive rotation is clockwise (like the heading of a boat).
-long motor2angle(int ml, int mr) {
+long original_motor2angle(int ml, int mr) {
   // a = (vl-vr)*180/(pi*w) = (vl-vr)*360/(2*pi*w)
   // where: 
   // vl,vr: speeds of left and right wheels in 1/10 mm/s.
   // w: width of the robot in 1/10th of mm
-  long vl = motor2speed(ml);
-  long vr = motor2speed(mr);
+  long vl = original_motor2speed(ml);
+  long vr = original_motor2speed(mr);
   return (vl-vr)*c360/c5152;
 }
 

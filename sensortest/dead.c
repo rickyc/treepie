@@ -12,6 +12,8 @@
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
 #include "3pi_kinematics.h"
+#include "calibration.h"
+
 #define MIN_MOTOR_SPEED 0
 #define MAX_MOTOR_SPEED 255
 
