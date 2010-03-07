@@ -40,18 +40,8 @@ const char robotName[] PROGMEM = " PONY";
 char display_characters[9] = { ' ', 0, 1, 2, 3, 4, 5, 6, 255 };
 
 void idle_until_button_pressed(button) {
-  // Display calibrated values as a bar graph.
-  while(!button_is_pressed(button)) {
-    unsigned int position = read_line(sensors,IR_EMITTERS_ON);
-    clear();
-    print_long(position);
-    lcd_goto_xy(0,1);
-    //display_readings(sensors);
-    delay_ms(100);
-  }
-  
+  while(!button_is_pressed(button)) { delay_ms(100); }
   wait_for_button_release(button);
-  clear();
 }
 
 // helper functions
@@ -241,7 +231,6 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   
   // set up the 3pi, and wait for B button to be pressed
   initialize();
-  
 	idle_until_button_pressed(BUTTON_B);
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); // sensor calibration
@@ -310,11 +299,13 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
     // new deltaTime
     deltaTime = millis() - prevTime;
   } while(!off_track(0));
-  
+
+	// Stop the motors, set the base speed to 40 and attempt to go home.
 	stopMotors();
  	rotation = 40;
   
  	clear();
+	lcd_goto_xy(0,0);
  	print("GO HOME");
   
 	int targetTheta = oldTheta/1000; // Reduce tracking-mode theta to scale
@@ -343,7 +334,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
  	clear();
  	print_long(targetTheta/1000);
  	
- 	//turn the robot //TODO: Clean up functionality here, maybe to the point of being all function calls
+ 	// turn the robot //TODO: Clean up functionality here, maybe to the point of being all function calls
  	long secondsToTurn = motor2angle(leftMotor,rightMotor); //TODO: Verify units
 	secondsToTurn = (100*targetTheta)/secondsToTurn;
 	clear();
@@ -359,7 +350,10 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 	}
   stopMotors();
   clear();
-  print("LOLZ");
+	// The 180 degrees turn is now complete and it should be facing 100
+	// degrees to its starting position.
+  print("Finish");
+	// -------------------------------------------
 
   //flip the yPos value if negative //TODO: Smell
   if (yPos < 0) yPos = -yPos;
@@ -372,6 +366,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   }
 
   stopMotors();
+
  /*  //TODO: Needsdoc
   //turn by 90 degrees to the right or left.
   targetTheta = 90;
