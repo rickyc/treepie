@@ -185,7 +185,7 @@ void speed_calibrate(int first_speed, int second_speed){
   print("Test 2");
   second_speed_time = two_line_time(second_speed);
   
-  update_calibration(first_speed_time, second_speed_time);
+  update_calibration(first_speed, second_speed, first_speed_time, second_speed_time);
   
   clear();
   return;
