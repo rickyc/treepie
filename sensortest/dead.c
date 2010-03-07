@@ -145,6 +145,8 @@ int off_track(center_only) {
   return 1; // Fell through the guard, thus off the line
 }
 
+//Calculates the time taken to travel a set distance
+//Currently assumed to be 20cm.
 int two_line_time(speed){
   idle_until_button_pressed(BUTTON_A);
   set_motors(speed, speed);
@@ -183,7 +185,7 @@ void speed_calibrate(int first_speed, int second_speed){
   print("Test 2");
   second_speed_time = two_line_time(second_speed);
   
-  //do some math to figure out the calibration coefficients from second_speed_time and first_speed_time
+  update_calibration(first_speed_time, second_speed_time);
   
   clear();
   return;

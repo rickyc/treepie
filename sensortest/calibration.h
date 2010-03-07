@@ -21,3 +21,9 @@ long motor2angle(int left_motor, int right_motor) {
   long right_vel = motor2speed(right_motor);
   return (left_vel-right_vel)*c360/c5152;
 }
+
+void update_calibration(int first_speed_time, int second_speed_time){
+  
+  
+  return;
+}
