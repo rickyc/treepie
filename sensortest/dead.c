@@ -186,7 +186,23 @@ void speed_calibrate(int first_speed, int second_speed){
   clear();
   return;
 }
+////////////////////////////////////////////////////////////
+long motor2speed(int v) {
+  int r = ( (v>0)? v : -v ) * 238/5 - 330;
+  r = (r>0) ? r : 0;
+  if (v>=0) {
+    return (long)(r);
+  } else {
+    return (long)(-r);
+  }
+}
 
+long motor2angle(int left_motor, int right_motor) {
+  long left_vel = motor2speed(left_motor);
+  long right_vel = motor2speed(right_motor);
+  return (left_vel-right_vel)*c360/c5152;
+}
+////////////////////////////////////////////////////////////
 // Make a little dance: Turn left and right
 void dance() {
   int counter;
