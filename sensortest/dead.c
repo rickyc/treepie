@@ -187,8 +187,11 @@ void speed_calibrate(int first_speed, int second_speed){
   return;
 }
 ////////////////////////////////////////////////////////////
+int cM2S_Num = 238;
+int cM2S_Denom = 5;
+int cM2S_Intercept = -330;
 long motor2speed(int v) {
-  int r = ( (v>0)? v : -v ) * 238/5 - 330;
+  int r = ( (v>0)? v : -v ) * cM2S_Num/cM2S_Denom + cM2S_Intercept;
   r = (r>0) ? r : 0;
   if (v>=0) {
     return (long)(r);
