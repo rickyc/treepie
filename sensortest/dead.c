@@ -11,7 +11,6 @@
 // ATmega168 has 16k of program space compared to 1k of RAM, so large
 // pieces of static data should be stored in program space.
 #include <avr/pgmspace.h>
-#include "3pi_kinematics.h"
 #include "calibration.h"
 
 #define MIN_MOTOR_SPEED 0

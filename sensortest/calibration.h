@@ -25,7 +25,7 @@ long motor2angle(int left_motor, int right_motor) {
 
 //Units are 3pi_speed x2, milliseconds x2
 void update_calibration(int speed_one, int speed_two, int time_one, int time_two){
-  long slope_numerator = calibration_distance*1000
+  long slope_numerator = calibration_distance*1000;
   long slope_denom = (speed_two - speed_one)*(time_two - time_one);
   long intercept = (calibration_distance/time_one)-(speed_one*slope_numerator/slope_denom);
 
