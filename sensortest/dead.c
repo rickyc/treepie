@@ -233,7 +233,8 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   idle_until_button_pressed(BUTTON_B);
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); // sensor calibration
-  //speed_calibrate(20,40);
+  //speed_calibrate(25,50);
+  idle_until_button_pressed(BUTTON_B);
   
   do {
     if (button_is_pressed(BUTTON_B)) {
