@@ -46,7 +46,7 @@ void idle_until_button_pressed(button) {
 
 // helper functions
 void toggleRun() { run = 1-run; }
-void stopMotors() { set_motors(0,0); }
+void stop_motors() { set_motors(0,0); }
 
 // This function loads custom characters into the LCD. Up to 8
 // characters can be loaded; we use them for 6 levels of a bar graph
@@ -152,7 +152,7 @@ int two_line_time(speed){
       second_mark_time = millis();
     }
     if (second_mark_time){
-      stopMotors();
+      stop_motors();
       speed_time = second_mark_time - first_mark_time;
       break;
     }
@@ -192,7 +192,7 @@ void dance() {
     update_bounds(sensors,minv,maxv);
     delay_ms(20);
   }
-  stopMotors();
+  stop_motors();
 }
 
 // Initializes the 3pi, displays a welcome message, calibrates, and
@@ -301,7 +301,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   } while(!off_track(0));
 
   // Stop the motors, set the base speed to 40 and attempt to go home.
-  stopMotors();
+  stop_motors();
   rotation = 40;
 
   clear();
@@ -314,19 +314,19 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   // and the left motor positive to spin clockwise.
   if (targetTheta > 0 && targetTheta <= 180) { //TODO: Clean up the logic/verify truth
     targetTheta = 180 - targetTheta;
-    leftMotor = rotation;
+    leftMotor = rotation; //Clockwise
     rightMotor = -rotation;
   } else if (targetTheta < -180) {
     targetTheta = targetTheta + 360;
-    leftMotor = rotation;
+    leftMotor = rotation; //Clockwise
     rightMotor = -rotation;
   } else if (targetTheta > 180) {
     targetTheta = 360 - targetTheta;
-    leftMotor = -rotation;
+    leftMotor = -rotation; //Counter-clockwise
     rightMotor = rotation;
-  } else {
+  } else { //Thus tTheta is between -180 and 0
     targetTheta = 180 + targetTheta;
-    leftMotor = -rotation;
+    leftMotor = -rotation; //Counter-clockwise
     rightMotor = rotation;
   }
 
@@ -334,38 +334,39 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   clear();
   print_long(targetTheta/1000);
 
-  // turn the robot //TODO: Clean up functionality here, maybe to the point of being all function calls
-  long secondsToTurn = motor2angle(leftMotor,rightMotor); //TODO: Verify units
-  secondsToTurn = (100*targetTheta)/secondsToTurn;
+  // turn the robot
+  long secondsToTurn = motor2angle(leftMotor,rightMotor); //Unit: Deg/sec
+  secondsToTurn = (100*targetTheta)/secondsToTurn; //Unit: Deg/(Deg/sec)
   clear();
-  if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //TODO: needsdoc
+  if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //Flip if negative turn time
 
   print_long(secondsToTurn);
-  lcd_goto_xy(1,1); //TODO: Factor "clear(); lcd_goto_xy(x,y); printf(val);" into print_xy(x,y,str,val);
+  lcd_goto_xy(1,1);
   print_long(targetTheta/1000);
 
-  for(i = 0; i < secondsToTurn; ++i) { //TODO: Factor "Turn Xdegrees" into a fn
+  //TODO: Factor "Turn X degrees" into a fn
+  for(i = 0; i < secondsToTurn; ++i) {
     set_motors(leftMotor, rightMotor);
     delay_ms(10);
   }
-  stopMotors();
+  stop_motors();
   clear();
-  // The 180 degrees turn is now complete and it should be facing 100
+  // The 180 degrees turn is now complete and it should be facing 100 //Um. 100 degrees?
   // degrees to its starting position.
   print("Finish");
   // -------------------------------------------
 
-  //flip the yPos value if negative //TODO: Smell
+  //flip the yPos value if negative
   if (yPos < 0) yPos = -yPos;
 
   long ySeconds = (yPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100
 
-  for (i = 0; i < ySeconds; ++i) { //TODO: Factor into "Travel X distance" fn
+  for (i = 0; i < ySeconds; ++i) { //TODO: Factor into "Travel X mm" fn
     set_motors(rotation,rotation);
     delay_ms(10);
   }
 
-  stopMotors();
+  stop_motors();
 
   /*  //TODO: Needsdoc
   //turn by 90 degrees to the right or left.
@@ -383,7 +384,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
     delay_ms(10);
     deltaTime = millis() - deltaTime;
   }
-  stopMotors();
+  stop_motors();
   delay_ms(250);
 
   //go by xPos
@@ -399,7 +400,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
     deltaTime = millis() - deltaTime;
   }
 
-  stopMotors();
+  stop_motors();
   delay_ms(250);
 
   //et phone home
