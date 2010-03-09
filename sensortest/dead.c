@@ -304,6 +304,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   rotation = 40;
 
   clear();
+<<<<<<< HEAD:sensortest/dead.c
   lcd_goto_xy(0,0);
   print("GO HOME");
 
@@ -368,6 +369,24 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   stop_motors();
 
   /*  //TODO: Needsdoc
+=======
+  print("LOLZ");
+/* 
+  //go up or down by yPos
+  set_motors(rotation,rotation);
+  deltaTime = millis();
+  //flip the yPos value if negative
+  if (yPos < 0) yPos = -yPos;
+  
+  while (yPos > 0) {
+  	yPos -= motor2speed(rotation) * deltaTime;
+  	delay_ms(10);
+  	deltaTime = millis() - deltaTime;
+  }
+  stopMotors();
+  delay_ms(250);
+  
+>>>>>>> abb3abb... current version. y kinda working. theta is pretty accurate:sensortest/dead.c
   //turn by 90 degrees to the right or left.
   targetTheta = 90;
 
