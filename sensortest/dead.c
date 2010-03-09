@@ -1,6 +1,6 @@
 /*
-	 3PI template code for NYU "Intro to Robotics" course. Yann LeCun, 02/2010.
-	 This program was modified from an example program from Pololu.
+   3PI template code for NYU "Intro to Robotics" course. Yann LeCun, 02/2010.
+   This program was modified from an example program from Pololu.
 */
 
 // The 3pi include file must be at the beginning of any program that
@@ -52,71 +52,71 @@ void stopMotors() { set_motors(0,0); }
 // characters can be loaded; we use them for 6 levels of a bar graph
 // plus a back arrow and a musical note character.
 void load_custom_characters() {
-	// Data for generating the characters used in load_custom_characters
-	// and display_readings. By reading levels[] starting at various
-	// offsets, we can generate all of the 7 extra characters needed for a
-	// bargraph. This is also stored in program space.
-	static const char levels[] PROGMEM = {
-		0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000,
-		0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111
-	};
-  
-	// This character is a musical note.
-	static const prog_char note[] PROGMEM = {
-		0b00100, 0b00110, 0b00101, 0b00101, 0b00100, 0b11100, 0b11100, 0b00000,
-	};
-  
-	// This character is a back arrow.
-	static const prog_char back_arrow[] PROGMEM = {
-		0b00000, 0b00010, 0b00001, 0b00101, 0b01001, 0b11110, 0b01000, 0b00100,
-	};
-  
-	lcd_load_custom_character(levels+0,0); // no offset, e.g. one bar
-	lcd_load_custom_character(levels+1,1); // two bars
-	lcd_load_custom_character(levels+2,2); // etc...
-	lcd_load_custom_character(levels+4,3); // skip level 3
-	lcd_load_custom_character(levels+5,4);
-	lcd_load_custom_character(levels+6,5);
-	lcd_load_custom_character(back_arrow,6);
-	lcd_load_custom_character(note,7);
-	clear(); // the LCD must be cleared for the characters to take effect
+  // Data for generating the characters used in load_custom_characters
+  // and display_readings. By reading levels[] starting at various
+  // offsets, we can generate all of the 7 extra characters needed for a
+  // bargraph. This is also stored in program space.
+  static const char levels[] PROGMEM = {
+    0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000,
+    0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111
+  };
+
+  // This character is a musical note.
+  static const prog_char note[] PROGMEM = {
+    0b00100, 0b00110, 0b00101, 0b00101, 0b00100, 0b11100, 0b11100, 0b00000,
+  };
+
+  // This character is a back arrow.
+  static const prog_char back_arrow[] PROGMEM = {
+    0b00000, 0b00010, 0b00001, 0b00101, 0b01001, 0b11110, 0b01000, 0b00100,
+  };
+
+  lcd_load_custom_character(levels+0,0); // no offset, e.g. one bar
+  lcd_load_custom_character(levels+1,1); // two bars
+  lcd_load_custom_character(levels+2,2); // etc...
+  lcd_load_custom_character(levels+4,3); // skip level 3
+  lcd_load_custom_character(levels+5,4);
+  lcd_load_custom_character(levels+6,5);
+  lcd_load_custom_character(back_arrow,6);
+  lcd_load_custom_character(note,7);
+  clear(); // the LCD must be cleared for the characters to take effect
 }
 
 // This function displays the sensor readings using a bar graph.
 void display_bars(const unsigned int *s, const unsigned int *minv, const unsigned int* maxv) {
-	// Initialize the array of characters that we will use for the
-	// graph. Using the space, and character 255 (a full black box).
-	unsigned char i;
-	for (i=0;i<5;i++) {
-		int c = ((int)s[i]-(int)minv[i])*9/((int)maxv[i]-(int)minv[i]);
-		c = (c<0)?0:(c>8)?8:c;
-		// if (i==0) { print_long(s[0]); print_long(c); }
-		print_character(display_characters[c]);
-	}
+  // Initialize the array of characters that we will use for the
+  // graph. Using the space, and character 255 (a full black box).
+  unsigned char i;
+  for (i=0;i<5;i++) {
+    int c = ((int)s[i]-(int)minv[i])*9/((int)maxv[i]-(int)minv[i]);
+    c = (c<0)?0:(c>8)?8:c;
+    // if (i==0) { print_long(s[0]); print_long(c); }
+    print_character(display_characters[c]);
+  }
 }
 
 void update_bounds(const unsigned int *s, unsigned int *minv, unsigned int *maxv) {
-	int i;
-	for (i=0; i<5; i++) {
-		unsigned int val = s[i];
-		if (val<minv[i]){ minv[i] = val; }
-		if (val>maxv[i]){ maxv[i] = val; }
-	}
+  int i;
+  for (i=0; i<5; i++) {
+    unsigned int val = s[i];
+    if (val<minv[i]){ minv[i] = val; }
+    if (val>maxv[i]){ maxv[i] = val; }
+  }
 }
 
 // Return line position
 long line_position() {
-	int i;
-	long sum = 0;
-	long count = 0;
-	int adjustment[5] = {-1000, -500, 0, 500, 1000};
-	for (i = 0; i < 5; i++) {
-		long min = (long)minv[i];   // tiny efficiency gain here
-		long dist = (10*((long)sensors[i]-min))/((long)maxv[i]-min); // 0-100
-		sum += dist*adjustment[i];  // 0-100's weighted by adjustment amount
-		count += dist;              // sum of 0-100's
-	}
-	return sum/count; // between -1000 and +1000
+  int i;
+  long sum = 0;
+  long count = 0;
+  int adjustment[5] = {-1000, -500, 0, 500, 1000};
+  for (i = 0; i < 5; i++) {
+    long min = (long)minv[i];   // tiny efficiency gain here
+    long dist = (10*((long)sensors[i]-min))/((long)maxv[i]-min); // 0-100
+    sum += dist*adjustment[i];  // 0-100's weighted by adjustment amount
+    count += dist;              // sum of 0-100's
+  }
+  return sum/count; // between -1000 and +1000
 }
 
 // Returns 1 if off the line, 0 if on the line
@@ -231,7 +231,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   
   // set up the 3pi, and wait for B button to be pressed
   initialize();
-	idle_until_button_pressed(BUTTON_B);
+  idle_until_button_pressed(BUTTON_B);
   read_line_sensors(sensors,IR_EMITTERS_ON);
   dance(); // sensor calibration
   //speed_calibrate(20,40);
@@ -243,7 +243,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
       delay_ms(200);
     }
 		
-		oldPosition = position;	// compute line positon
+    oldPosition = position;	// compute line positon
     prevTime = millis();  //get the first time reading
     read_line_sensors(sensors, IR_EMITTERS_ON);
     update_bounds(sensors, minv, maxv);
@@ -260,28 +260,28 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
     integral = position + oldPosition; // tracks long runningposition offset
     offset = 	position/11 + derivative/30 + integral/50;
     
-		if (run == 1) {	
-			leftMotor = rotation + offset;
+    if (run == 1) {	
+      leftMotor = rotation + offset;
       rightMotor = rotation - offset;
-      
+
       leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
-      
+
       // truncation on negatives for safety
       leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
       rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
-      
-			marginalTheta = (long)( motor2angle(leftMotor, rightMotor) * deltaTime);
-			
-			newTheta = oldTheta + marginalTheta;
-			
-			alpha = newTheta;
-      
+
+      marginalTheta = (long)( motor2angle(leftMotor, rightMotor) * deltaTime);
+
+      newTheta = oldTheta + marginalTheta;
+
+      alpha = newTheta;
+
       xPos += (long)((Sin(alpha/1000)*deltaTime*motor2speed(rotation))/1000000); //TODO: Verify and document
       yPos += (long)((Cos(alpha/1000)*deltaTime*motor2speed(rotation))/1000000); //TODO: Needsdoc
-      
+
       oldTheta = newTheta;
-      
+
       set_motors(leftMotor, rightMotor);
     }
     
@@ -295,114 +295,114 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
     //char display[8];
     //sprintf(display,"%i %i",xPos,yPos);
     //print(display);
-    
+
     // new deltaTime
     deltaTime = millis() - prevTime;
   } while(!off_track(0));
 
-	// Stop the motors, set the base speed to 40 and attempt to go home.
-	stopMotors();
- 	rotation = 40;
-  
- 	clear();
-	lcd_goto_xy(0,0);
- 	print("GO HOME");
-  
-	int targetTheta = oldTheta/1000; // Reduce tracking-mode theta to scale
-	
-	//if it's a positive angle, subtract it from 180 and then make the right motor neg 
-	// and the left motor positive to spin clockwise.
-	if (targetTheta > 0 && targetTheta <= 180) { //TODO: Clean up the logic/verify truth
+  // Stop the motors, set the base speed to 40 and attempt to go home.
+  stopMotors();
+  rotation = 40;
+
+  clear();
+  lcd_goto_xy(0,0);
+  print("GO HOME");
+
+  int targetTheta = oldTheta/1000; // Reduce tracking-mode theta to scale
+
+  //if it's a positive angle, subtract it from 180 and then make the right motor neg 
+  // and the left motor positive to spin clockwise.
+  if (targetTheta > 0 && targetTheta <= 180) { //TODO: Clean up the logic/verify truth
     targetTheta = 180 - targetTheta;
     leftMotor = rotation;
     rightMotor = -rotation;
-	} else if (targetTheta < -180) {
+  } else if (targetTheta < -180) {
     targetTheta = targetTheta + 360;
     leftMotor = rotation;
     rightMotor = -rotation;
-	} else if (targetTheta > 180) {
+  } else if (targetTheta > 180) {
     targetTheta = 360 - targetTheta;
     leftMotor = -rotation;
     rightMotor = rotation;
-	} else {
+  } else {
     targetTheta = 180 + targetTheta;
     leftMotor = -rotation;
     rightMotor = rotation;
-	}  
- 
- 	deltaTime = millis() - deltaTime;
- 	clear();
- 	print_long(targetTheta/1000);
- 	
- 	// turn the robot //TODO: Clean up functionality here, maybe to the point of being all function calls
- 	long secondsToTurn = motor2angle(leftMotor,rightMotor); //TODO: Verify units
-	secondsToTurn = (100*targetTheta)/secondsToTurn;
-	clear();
-	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //TODO: needsdoc
-	
-	print_long(secondsToTurn);
-	lcd_goto_xy(1,1); //TODO: Factor "clear(); lcd_goto_xy(x,y); printf(val);" into print_xy(x,y,str,val);
-	print_long(targetTheta/1000);
-	
-	for(i = 0; i < secondsToTurn; ++i) { //TODO: Factor "Turn Xdegrees" into a fn
-		set_motors(leftMotor, rightMotor);
-		delay_ms(10);
-	}
+  }
+
+  deltaTime = millis() - deltaTime;
+  clear();
+  print_long(targetTheta/1000);
+
+  // turn the robot //TODO: Clean up functionality here, maybe to the point of being all function calls
+  long secondsToTurn = motor2angle(leftMotor,rightMotor); //TODO: Verify units
+  secondsToTurn = (100*targetTheta)/secondsToTurn;
+  clear();
+  if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //TODO: needsdoc
+
+  print_long(secondsToTurn);
+  lcd_goto_xy(1,1); //TODO: Factor "clear(); lcd_goto_xy(x,y); printf(val);" into print_xy(x,y,str,val);
+  print_long(targetTheta/1000);
+
+  for(i = 0; i < secondsToTurn; ++i) { //TODO: Factor "Turn Xdegrees" into a fn
+    set_motors(leftMotor, rightMotor);
+    delay_ms(10);
+  }
   stopMotors();
   clear();
-	// The 180 degrees turn is now complete and it should be facing 100
-	// degrees to its starting position.
+  // The 180 degrees turn is now complete and it should be facing 100
+  // degrees to its starting position.
   print("Finish");
-	// -------------------------------------------
+  // -------------------------------------------
 
   //flip the yPos value if negative //TODO: Smell
   if (yPos < 0) yPos = -yPos;
-  
+
   long ySeconds = (yPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100
-  
+
   for (i = 0; i < ySeconds; ++i) { //TODO: Factor into "Travel X distance" fn
-  	set_motors(rotation,rotation);
-  	delay_ms(10);
+    set_motors(rotation,rotation);
+    delay_ms(10);
   }
 
   stopMotors();
 
- /*  //TODO: Needsdoc
+  /*  //TODO: Needsdoc
   //turn by 90 degrees to the right or left.
   targetTheta = 90;
-  
+
   //turn robot to the proper angle based upon where it began. 
   if (oldXPos > 0 && oldYPos > 0) set_motors(rotation, 0);			//q1
   else if (oldXPos < 0 && oldYPos > 0) set_motors(0, rotation); //q2
   else if (oldXPos < 0 && oldYPos < 0) set_motors(rotation, 0);	//q3
   else set_motors(0, rotation);																	//q4
-  
+
   deltaTime = millis();
   while (targetTheta > 0) {
-  	targetTheta -= motor2speed(10)*deltaTime;
-		delay_ms(10);
-		deltaTime = millis() - deltaTime;
-	}
-	stopMotors();
-	delay_ms(250);
-	
-	//go by xPos
-	set_motors(rotation,rotation);
-	deltaTime = millis();
-	
-	//flip xPos
-	if (xPos < 0) xPos = -xPos;
-	
-	while (xPos > 0) {
-		xPos -= motor2speed(rotation) * deltaTime;
-		delay_ms(10);
-		deltaTime = millis() - deltaTime;
-	}
+    targetTheta -= motor2speed(10)*deltaTime;
+    delay_ms(10);
+    deltaTime = millis() - deltaTime;
+  }
+  stopMotors();
+  delay_ms(250);
 
-	stopMotors();
+  //go by xPos
+  set_motors(rotation,rotation);
+  deltaTime = millis();
+
+  //flip xPos
+  if (xPos < 0) xPos = -xPos;
+
+  while (xPos > 0) {
+    xPos -= motor2speed(rotation) * deltaTime;
+    delay_ms(10);
+    deltaTime = millis() - deltaTime;
+  }
+
+  stopMotors();
   delay_ms(250);
 
   //et phone home
-*/
+  */
   return 0;
 }
