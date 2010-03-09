@@ -43,10 +43,6 @@ void idle_until_button_pressed(button) {
   wait_for_button_release(button);
 }
 
-void set(int l, int r) {
-	set_motors(l, r+4);
-}
-
 // helper functions
 void toggleRun() { run = 1-run; }
 void stop_motors() { set_motors(0,0); }
@@ -221,7 +217,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   int leftMotor = 0;
   int rightMotor = 0;
   long integral = 0;
-  int rotation = 40;
+  int rotation = 25;
   int i;
   long xPos = 0;
   long yPos = 0;
@@ -256,8 +252,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
     // to go from the first time reading till now.
     // we need to incorporate the past loop's run-time in addition to the
     // part of the while loop traversed so far.
-//    deltaTime = millis() - prevTime;
-//    prevTime = millis();
+    deltaTime = deltaTime + millis() - prevTime;
     
     // position = -1000 to 1000
     derivative = position - oldPosition;
@@ -281,14 +276,12 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 
       alpha = newTheta;
 
-      xPos += (long)((Sin(alpha/1000)*deltaTime*motor2speed((leftMotor + rightMotor)/2))/1000000); 
-      //TODO: Verify and document
-      yPos += (long)((Cos(alpha/1000)*deltaTime*motor2speed((leftMotor + rightMotor)/2))/1000000); 
-      //TODO: Needsdoc
+      xPos += (long)((Sin(alpha/1000)*deltaTime*motor2speed(rotation))/1000000); //TODO: Verify and document
+      yPos += (long)((Cos(alpha/1000)*deltaTime*motor2speed(rotation))/1000000); //TODO: Needsdoc
 
       oldTheta = newTheta;
 
-      set(leftMotor, rightMotor);
+      set_motors(leftMotor, rightMotor);
     }
     
     // debug code
@@ -304,12 +297,11 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 
     // new deltaTime
     deltaTime = millis() - prevTime;
-//    prevTiime = millis();
   } while(!off_track(0));
 
   // Stop the motors, set the base speed to 40 and attempt to go home.
   stop_motors();
-  rotation = 45;
+  rotation = 40;
 
   clear();
   lcd_goto_xy(0,0);
@@ -343,7 +335,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 
   // turn the robot
   long secondsToTurn = motor2angle(leftMotor,rightMotor); //Unit: Deg/sec
-  secondsToTurn = (110*targetTheta)/secondsToTurn; //Unit: Deg/(Deg/sec)
+  secondsToTurn = (100*targetTheta)/secondsToTurn; //Unit: Deg/(Deg/sec)
   clear();
   if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //Flip if negative turn time
 
@@ -353,7 +345,7 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 
   //TODO: Factor "Turn X degrees" into a fn
   for(i = 0; i < secondsToTurn; ++i) {
-    set(leftMotor, rightMotor);
+    set_motors(leftMotor, rightMotor);
     delay_ms(10);
   }
   stop_motors();
@@ -367,10 +359,9 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   if (yPos < 0) yPos = -yPos;
 
   long ySeconds = (yPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100
-	clear();
-	print_long(ySeconds);
+
   for (i = 0; i < ySeconds; ++i) { //TODO: Factor into "Travel X mm" fn
-    set(rotation,rotation);
+    set_motors(rotation,rotation);
     delay_ms(10);
   }
 
