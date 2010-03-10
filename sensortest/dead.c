@@ -217,8 +217,8 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   int leftMotor = 0;
   int rightMotor = 0;
   long integral = 0;
-  int rotation = 25;
-  int i;
+  int rotation = 40;
+  long i;
   long xPos = 0;
   long yPos = 0;
   long oldTheta = 0;
@@ -253,7 +253,8 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
     // to go from the first time reading till now.
     // we need to incorporate the past loop's run-time in addition to the
     // part of the while loop traversed so far.
-    deltaTime = deltaTime + millis() - prevTime;
+//    deltaTime = millis() - prevTime;
+//    prevTime = millis();
     
     // position = -1000 to 1000
     derivative = position - oldPosition;
@@ -275,10 +276,10 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 
       newTheta = oldTheta + marginalTheta;
 
-      alpha = newTheta;
+      alpha = (newTheta+oldTheta)/2;
 
-      xPos += (long)((Sin(alpha/1000)*deltaTime*motor2speed(rotation))/1000000); //TODO: Verify and document
-      yPos += (long)((Cos(alpha/1000)*deltaTime*motor2speed(rotation))/1000000); //TODO: Needsdoc
+      xPos += (long)(((Sin(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000000)); 
+      yPos += (long)(((Cos(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000));
 
       oldTheta = newTheta;
 
@@ -288,9 +289,9 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
     // debug code
     clear();
     lcd_goto_xy(0,0);
-    print_long(marginalTheta);
+    print_long(xPos);
     lcd_goto_xy(1,1);
-    print_long(alpha/1000);
+    print_long(yPos);
     delay_ms(1);
     //char display[8];
     //sprintf(display,"%i %i",xPos,yPos);
@@ -298,11 +299,12 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 
     // new deltaTime
     deltaTime = millis() - prevTime;
+    
   } while(!off_track(0));
-
   // Stop the motors, set the base speed to 40 and attempt to go home.
   stop_motors();
   rotation = 40;
+  delay_ms(1000);
 
   clear();
   lcd_goto_xy(0,0);
@@ -350,10 +352,10 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
     delay_ms(10);
   }
   stop_motors();
-  clear();
+ // clear();
   // The 180 degrees turn is now complete and it should be facing 100 //Um. 100 degrees?
   // degrees to its starting position.
-  print("Finish");
+ // print("Finish");
   // -------------------------------------------
 
   //flip the yPos value if negative
@@ -367,8 +369,51 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
   }
 
   stop_motors();
+  
+  // turn the robot
+  targetTheta = 90;
+  leftMotor = rotation;
+  rightMotor = -rotation;
+  
+  secondsToTurn = motor2angle(leftMotor,rightMotor); //Unit: Deg/sec
+  secondsToTurn = (120*targetTheta)/secondsToTurn; //Unit: Deg/(Deg/sec)
+  clear();
+  if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //Flip if negative turn time
+  for(i = 0; i < secondsToTurn; ++i) {
+    set_motors(leftMotor, rightMotor);
+    delay_ms(10);
+  }
+  stop_motors();
+  clear();
+  
+	if (xPos < 0) xPos = -xPos;
+
+  long xSeconds = (xPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100
+
+  for (i = 0; i < xSeconds; ++i) { //TODO: Factor into "Travel X mm" fn
+    set_motors(rotation,rotation);
+    delay_ms(10);
+  }
+
+  stop_motors();
 
   /*  //TODO: Needsdoc
+  print("LOLZ");
+/* 
+  //go up or down by yPos
+  set_motors(rotation,rotation);
+  deltaTime = millis();
+  //flip the yPos value if negative
+  if (yPos < 0) yPos = -yPos;
+  
+  while (yPos > 0) {
+  	yPos -= motor2speed(rotation) * deltaTime;
+  	delay_ms(10);
+  	deltaTime = millis() - deltaTime;
+  }
+  stopMotors();
+  delay_ms(250);
+  
   //turn by 90 degrees to the right or left.
   targetTheta = 90;
 
