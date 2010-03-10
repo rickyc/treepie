@@ -2,27 +2,25 @@
 	 3PI template code for NYU "Intro to Robotics" course. Yann LeCun, 02/2010.
 	 This program was modified from an example program from Pololu.
 */
-
-// The 3pi include file must be at the beginning of any program that
-// uses the Pololu AVR library and 3pi.
+//Required for all 3pi programs
 #include <pololu/3pi.h>
-
-// This include file allows data to be stored in program space. The
-// ATmega168 has 16k of program space compared to 1k of RAM, so large
-// pieces of static data should be stored in program space.
+//Required for the use of program space for data
 #include <avr/pgmspace.h>
+//Alters the standard behavior of the 3pi_kinematics.h file
 #include "calibration.h"
 
 #define MIN_MOTOR_SPEED 0
 #define MAX_MOTOR_SPEED 255
 
-// global arrays to hold min and max sensor values for calibration
+// Global arrays to hold min and max sensor values for calibration
 unsigned int sensors[5]; // global array to hold sensor values
 unsigned int minv[5] = {65000, 65000, 65000, 65000, 65000};
 unsigned int maxv[5] = {0};
-
-// more globals
+// Global for robot base motor setting
 int rotation = 40;
+// Global to track whether the robot is to be running in the main loop
+int run = 0; // if =1 run the robot, if =0 stop
+// Globals that track position relative to the robot boot location (origin)
 long xPos = 0;
 long yPos = 0;
 
@@ -33,9 +31,6 @@ const char beep_button_top[] PROGMEM = "!c32";
 const char beep_button_middle[] PROGMEM = "!e32";
 const char beep_button_bottom[] PROGMEM = "!g32";
 const char timer_tick[] PROGMEM = "!v8>>c32";
-
-int speed = 100; // speed of the robot
-int run = 0; // if =1 run the robot, if =0 stop
 
 // Introductory messages. The "PROGMEM" identifier
 // causes the data to go into program space.
@@ -50,7 +45,7 @@ void idle_until_button_pressed(button) {
 
 // helper functions
 void toggleRun() { run = 1-run; }
-void stop_motors() { set_motors(0,0); }
+void stop_motors() { set_motors(0,0); delay_ms(250);}
 
 // This function loads custom characters into the LCD. Up to 8
 // characters can be loaded; we use them for 6 levels of a bar graph
@@ -212,6 +207,7 @@ void initialize() {
 // Debugger Code
 void debug_1(long l) { clear(); lcd_goto_xy(0,0); print_long(l); }
 void debug_2(long l) { lcd_goto_xy(0,1); print_long(l); }
+void debug_a(long l_one, long l_two) { debug_1(l_one); debug_2(l_two); }
 
 void run_motors_for_X_seconds(leftMotor,rightMotor,seconds) {
 	for (i=0;i<seconds;++i) { 
@@ -238,14 +234,13 @@ void turn_to_angle(long angle) {
 
 	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //Flip if negative turn time
 
-	debug_1(secondsToTurn);
-	debug_2(targetTheta/1000);
+	debug_a(secondsToTurn, targetTheta/1000);
 
 	run_motors_for_X_seconds(leftMotor,rightMotor,secondsToTurn);
 
 	if (xPos < 0) xPos = -xPos;
 
-	long xSeconds = (xPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100
+	long xSeconds = (xPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100 (Also Units)
 
 	for (i = 0; i < xSeconds; ++i) { //TODO: Factor into "Travel X mm" fn
 		set_motors(rotation,rotation);
@@ -255,13 +250,10 @@ void turn_to_angle(long angle) {
 	stop_motors();
 }
 
-// (TODO) Alex put a space after a comment declaration
+// (TODO) Alex put a space after a comment declaration. (Alex: What?)
 
-// This is the main function, where the code starts. All C programs
-// must have a main() function defined somewhere.
-int main() {  //TODO: If worth it/desired, factor main into mostly function
-	//calls and returning values that set the new loop-thru value
-
+//Showtime!
+int main() {
 	// line position relative to center
 	long position = 0;
 	long oldPosition = 0;
@@ -285,18 +277,19 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 	dance(); // sensor calibration
 
 	// Alex's Calibration Madness
-	speed_calibrate(25,50);
+	//speed_calibrate(25,50); //TODO: Turn on when ready for showtime
 	idle_until_button_pressed(BUTTON_B);
 
 	do {
-		if(button_is_pressed(BUTTON_B)) {
-			play_from_program_space(beep_button_middle);
+		if(button_is_pressed(BUTTON_B)) { //TODO: Check whether idle_until...() three lines up is duping with this buttonpress
+			play_from_program_space(beep_button_middle); // I bet this if() block doesn't even ever occur...
 			toggleRun();
 			delay_ms(200);
 		}
 
 		oldPosition = position;	// compute line positon
-		prevTime = millis();  //get the first time reading
+		prevTime = millis();  //get the first time reading TODO: Is this necessary at this point?
+    /*TODO: Maybe make deltaTime a global that updates every time you call the fn clock_in();*/
 		read_line_sensors(sensors, IR_EMITTERS_ON);
 		update_bounds(sensors, minv, maxv);
 		position = line_position();
@@ -310,28 +303,27 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 
 		// position = -1000 to 1000
 		derivative = position - oldPosition;
-		integral = position + oldPosition; // tracks long runningposition offset
+		integral = position + oldPosition; // tracks long-running position offset
 		offset = 	position/11 + derivative/30 + integral/50;
 
 		if (run == 1) {	
 			leftMotor = rotation + offset;
 			rightMotor = rotation - offset;
-
+      // Guard against higher-than-acceptable values
 			leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
 			rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
-
-			// truncation on negatives for safety
+			// Guard against lower-than-acceptable values
 			leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
 			rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
 
-			marginalTheta = (long)( motor2angle(leftMotor, rightMotor) * deltaTime);
+			marginalTheta = (long)( motor2angle(leftMotor, rightMotor) * deltaTime); //TODO: Units
 
-			newTheta = oldTheta + marginalTheta;
+			newTheta = oldTheta + marginalTheta; //TODO: Perhaps scale down to 0-360 or -180-+180 here
 
-			alpha = (newTheta+oldTheta)/2;
+			alpha = (newTheta+oldTheta)/2; //TODO: Verify. "Alpha = (oldTheta+MarginalTheta+oldTheta)/2"
 
-			xPos += (long)(((Sin(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000000)); // LOVE MAGIC NUMBERS
-			yPos += (long)(((Cos(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000));
+			xPos += (long)(((Sin(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000000)); // LOVE MAGIC NUMBERS TODO: Units
+			yPos += (long)(((Cos(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000)); //TODO: How can these be different divisors?
 
 			oldTheta = newTheta;
 
@@ -339,19 +331,17 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 		}
 
 		// debug code
-		debug_1(xPos);
-		debug_2(yPos);
-		delay_ms(1);
+		debug_a(xPos, yPos);
+		delay_ms(10);
 
-		deltaTime = millis() - prevTime; // new deltaTime 
+		deltaTime = millis() - prevTime; // new deltaTime /*TODO: This happens so much it's not even funny. Lock it down.*/
 
 	} while(!off_track(0));
 
 	// Stop the motors, set the base speed to 40 and attempt to go home.
 	stop_motors();
 	rotation = 40;
-	delay_ms(1000);
-
+	
 	clear();
 	lcd_goto_xy(0,0);
 	print("I am lost"); // aka go home
@@ -391,26 +381,21 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 	// flip the yPos value if negative
 	if (yPos < 0) yPos = -yPos;
 
-	long ySeconds = (yPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100
+	long ySeconds = (yPos*100)/motor2speed(rotation);
 	// the 100 is to prevent the number from reduction to zero ^, yPos = 10/300 = 0
 
 	run_motor_for_X_seconds(rotation,ySeconds);
-	turn_to_angle(90);
+	turn_to_angle(90); //Shouldn't it be turn 90degrees CW, aka turn to -90||+270
 
-	/*  //TODO: Needsdoc
-			print("LOLZ");
-	*/
-
-	//go up or down by yPos
-	//flip the yPos value if negative
+	//travel distance of yPos, but flip the yPos value if negative
 	if (yPos < 0) yPos = -yPos;
 
-	while (yPos > 0) {
+	while (yPos > 0) { //TODO: Factor  into fn: drive(dist, motor setting);
 		yPos -= motor2speed(rotation)*deltaTime;
 		delay_ms(10);
 		deltaTime = millis()-deltaTime;
 	}
-	stopMotors();
+	stopMotors(); //end fn "drive"
 	delay_ms(250);
 
 	//turn by 90 degrees to the right or left.
@@ -419,37 +404,32 @@ int main() {  //TODO: If worth it/desired, factor main into mostly function
 	// a different algorithm to do the turn
 
 	//turn robot to the proper angle based upon where it began. 
-	// (TODO) questa è una diversi funzione per andare a casa.
-	if (oldXPos > 0 && oldYPos > 0) set_motors(rotation, 0);			//q1
-	else if (oldXPos < 0 && oldYPos > 0) set_motors(0, rotation); //q2
-	else if (oldXPos < 0 && oldYPos < 0) set_motors(rotation, 0);	//q3
-	else set_motors(0, rotation);																	//q4
+	// (TODO) questa e` una diversi funzione per andare a casa. (That's definitely incorrect italian)
+	if (oldXPos > 0 && oldYPos > 0) set_motors(rotation, 0); //Quadrant 1
+    else if (oldXPos < 0 && oldYPos > 0) set_motors(0, rotation); //2
+    else if (oldXPos < 0 && oldYPos < 0) set_motors(rotation, 0); //3
+	else set_motors(0, rotation); //4
 
-	deltaTime = millis();
+	deltaTime = millis(); //Definitely incorrect (TODO)
 	while (targetTheta > 0) {
-		targetTheta -= motor2speed(10)*deltaTime; // MAGIC NUMBER 
+		targetTheta -= motor2speed(10)*deltaTime; //TODO: change the motor speed in here, also factor
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
 	}
 	stop_motors();
-	delay_ms(250);
-
-	//go by xPos
+	
+  //flip xPos (TODO) bound check unnecessary now? I mean might as well leave it there
+	if (xPos < 0) xPos = -xPos;
+	//drive(xPos, rotation)
 	set_motors(rotation,rotation);
 	deltaTime = millis();
-
-	//flip xPos (TODO) bound check unnecessary now? I mean might as well leave it there
-	if (xPos < 0) xPos = -xPos;
-
 	while (xPos > 0) {
 		xPos -= motor2speed(rotation) * deltaTime;
 		delay_ms(10);
 		deltaTime = millis() - deltaTime;
-	}
+	}//end drive
 
 	stop_motors();
-	delay_ms(250);
-
 	return 0;
 }
 
