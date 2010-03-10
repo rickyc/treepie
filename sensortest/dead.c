@@ -2,11 +2,11 @@
 	 3PI template code for NYU "Intro to Robotics" course. Yann LeCun, 02/2010.
 	 This program was modified from an example program from Pololu.
 */
-//Required for all 3pi programs
+// Required for all 3pi programs
 #include <pololu/3pi.h>
-//Required for the use of program space for data
+// Required for the use of program space for data
 #include <avr/pgmspace.h>
-//Alters the standard behavior of the 3pi_kinematics.h file
+// Alters the standard behavior of the 3pi_kinematics.h file
 #include "calibration.h"
 
 #define MIN_MOTOR_SPEED 0
@@ -134,6 +134,10 @@ int off_track(center_only) {
 	return 1; // Fell through the guard, thus off the line
 }
 
+// (TODO) 4 Alex Lobasian. Yah, know how you put a space after a period. Like this?
+// So you put a space after a comment -.-
+//Not like This
+//---- FYI same practice in ruby (DELETE previous four lines after you are done)
 //Calculates the time taken to travel a set distance
 //Currently assumed to be 20cm.
 int two_line_time(speed){
@@ -147,7 +151,7 @@ int two_line_time(speed){
 		read_line_sensors(sensors, IR_EMITTERS_ON);
 		if(off_track(0) && !first_mark_time){
 			first_mark_time = millis();
-		} else if(off_track(0) && !second_mark_time && (millis() - first_mark_time > 200)) {
+		} else if(off_track(0) && !second_mark_time && (millis()-first_mark_time > 200)) {
 			second_mark_time = millis();
 		}
 		if (second_mark_time){
@@ -205,9 +209,9 @@ void initialize() {
 }
 
 // Debugger Code
-void debug_1(long l) { clear(); lcd_goto_xy(0,0); print_long(l); }
+void debug_1(long l) { lcd_goto_xy(0,0); print_long(l); }
 void debug_2(long l) { lcd_goto_xy(0,1); print_long(l); }
-void debug_a(long l_one, long l_two) { debug_1(l_one); debug_2(l_two); }
+void debug_a(long l_one, long l_two) { clear(); debug_1(l_one); debug_2(l_two); }
 
 void run_motors_for_X_seconds(leftMotor,rightMotor,seconds) {
 	for (i=0;i<seconds;++i) { 
@@ -225,34 +229,22 @@ void turn_to_angle(long angle) {
 	int leftMotor = rotation;
 	int rightMotor = -rotation;
 
-	long secondsToTurn = motor2angle(leftMotor,rightMotor); //Unit: Deg/sec
+	long secondsToTurn = motor2angle(leftMotor,rightMotor); // Unit: Deg/sec
 	// MAGIC NUMBER!!! This line was called in the turn to X Axis
-	// secondsToTurn = (100*targetTheta)/secondsToTurn; //Unit: Deg/(Deg/sec)
+	// secondsToTurn = (100*targetTheta)/secondsToTurn; // Unit: Deg/(Deg/sec)
 
 	// This was called in turn 90 degrees
-	secondsToTurn = (120*angle)/secondsToTurn; //Unit: Deg/(Deg/sec)
+	secondsToTurn = (120*angle)/secondsToTurn; // Unit: Deg/(Deg/sec)
 
-	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //Flip if negative turn time
-
+	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  // Flip if negative turn time
 	debug_a(secondsToTurn, targetTheta/1000);
-
 	run_motors_for_X_seconds(leftMotor,rightMotor,secondsToTurn);
 
 	if (xPos < 0) xPos = -xPos;
-
-	long xSeconds = (xPos*100)/motor2speed(rotation); //TODO: Explain or disprove the *100 (Also Units)
-
-	for (i = 0; i < xSeconds; ++i) { //TODO: Factor into "Travel X mm" fn
-		set_motors(rotation,rotation);
-		delay_ms(10);
-	}
-
-	stop_motors();
+	long xSeconds = (xPos*100)/motor2speed(rotation); // TODO: Explain units
+	run_motor_for_X_seconds(rotation,xSeconds);
 }
 
-// (TODO) Alex put a space after a comment declaration. (Alex: What?)
-
-//Showtime!
 int main() {
 	// line position relative to center
 	long position = 0;
@@ -277,12 +269,14 @@ int main() {
 	dance(); // sensor calibration
 
 	// Alex's Calibration Madness
-	//speed_calibrate(25,50); //TODO: Turn on when ready for showtime
+	// speed_calibrate(25,50); // TODO: Turn on when its actually working
 	idle_until_button_pressed(BUTTON_B);
 
 	do {
-		if(button_is_pressed(BUTTON_B)) { //TODO: Check whether idle_until...() three lines up is duping with this buttonpress
-			play_from_program_space(beep_button_middle); // I bet this if() block doesn't even ever occur...
+		// (TODO) remove comment on next iteration, this does work, basically if button is hit
+		// the robot stops running
+		if(button_is_pressed(BUTTON_B)) { 
+			play_from_program_space(beep_button_middle); 
 			toggleRun();
 			delay_ms(200);
 		}
@@ -290,6 +284,7 @@ int main() {
 		oldPosition = position;	// compute line positon //TODO* You're telling me this runs even while run!=0. That's terrible.
 		prevTime = millis();  //get the first time reading TODO: Is this necessary at this point?
     /*TODO: Maybe make deltaTime a global that updates every time you call the fn clock_in();*/
+		// ^ I don't like that either.
 		read_line_sensors(sensors, IR_EMITTERS_ON);
 		update_bounds(sensors, minv, maxv);
 		position = line_position();
@@ -334,6 +329,7 @@ int main() {
 		delay_ms(10);
 
 		deltaTime = millis() - prevTime; // new deltaTime /*TODO: This happens so much it's not even funny. Lock it down.*/
+		// ^ I don't like this either
 
 	} while(!off_track(0));
 
@@ -347,7 +343,7 @@ int main() {
 
 	int targetTheta = oldTheta/1000; // Reduce tracking-mode theta to scale
 
-	//if it's a positive angle, subtract it from 180 and then make the right motor neg 
+	// if it's a positive angle, subtract it from 180 and then make the right motor neg 
 	// and the left motor positive to spin clockwise.
 	if (targetTheta > 0 && targetTheta <= 180) { //TODO: Clean up the logic/verify truth
 		targetTheta = 180 - targetTheta;
@@ -389,21 +385,24 @@ int main() {
 	//travel distance of yPos, but flip the yPos value if negative
 	if (yPos < 0) yPos = -yPos;
 
-	while (yPos > 0) { //TODO: Factor  into fn: drive(dist, motor setting);
+	while (yPos > 0) { //TODO: Factor  into fn: drive(dist, motor setting); -- This was factored, except 
+		// there are two algorithms that do the same thing, Basically this is the same as run_motor_for_X_seconds
+		// I have to say this algorithm would probably be more accurate assuming the X,Y is accurate just due to the
+		// fact it's reversing the count
 		yPos -= motor2speed(rotation)*deltaTime;
 		delay_ms(10);
 		deltaTime = millis()-deltaTime;
 	}
-	stopMotors(); //end fn "drive"
-	delay_ms(250);
+	stop_motors(); //end fn "drive"
 
-	//turn by 90 degrees to the right or left.
+	// turn by 90 degrees to the right or left.
 	targetTheta = 90;
 	// (BUG) There is no turn here, the theta was just reset to 90 and uses
 	// a different algorithm to do the turn
 
-	//turn robot to the proper angle based upon where it began. 
+	// turn robot to the proper angle based upon where it began. 
 	// (TODO) questa e` una diversi funzione per andare a casa. (That's definitely incorrect italian)
+	// farsi
 	if (oldXPos > 0 && oldYPos > 0) set_motors(rotation, 0); //Quadrant 1
     else if (oldXPos < 0 && oldYPos > 0) set_motors(0, rotation); //2
     else if (oldXPos < 0 && oldYPos < 0) set_motors(rotation, 0); //3
@@ -417,9 +416,9 @@ int main() {
 	}
 	stop_motors();
 	
-  //flip xPos (TODO) bound check unnecessary now? I mean might as well leave it there
+  // flip xPos (TODO) bound check unnecessary now? I mean might as well leave it there
 	if (xPos < 0) xPos = -xPos;
-	//drive(xPos, rotation)
+	// drive(xPos, rotation)
 	set_motors(rotation,rotation);
 	deltaTime = millis();
 	while (xPos > 0) {
