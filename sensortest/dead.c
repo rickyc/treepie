@@ -287,7 +287,7 @@ int main() {
 			delay_ms(200);
 		}
 
-		oldPosition = position;	// compute line positon
+		oldPosition = position;	// compute line positon //TODO* You're telling me this runs even while run!=0. That's terrible.
 		prevTime = millis();  //get the first time reading TODO: Is this necessary at this point?
     /*TODO: Maybe make deltaTime a global that updates every time you call the fn clock_in();*/
 		read_line_sensors(sensors, IR_EMITTERS_ON);
@@ -301,10 +301,9 @@ int main() {
 		//    deltaTime = millis() - prevTime;
 		//    prevTime = millis();
 
-		// position = -1000 to 1000
-		derivative = position - oldPosition;
-		integral = position + oldPosition; // tracks long-running position offset
-		offset = 	position/11 + derivative/30 + integral/50;
+		derivative = position - oldPosition; // TODO*
+		integral = position + oldPosition; // tracks long-running position offset TODO*
+		offset = 	position/11 + derivative/30 + integral/50; //TODO *
 
 		if (run == 1) {	
 			leftMotor = rotation + offset;
