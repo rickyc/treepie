@@ -214,6 +214,7 @@ void debug_2(long l) { lcd_goto_xy(0,1); print_long(l); }
 void debug_a(long l_one, long l_two) { clear(); debug_1(l_one); debug_2(l_two); }
 
 void run_motors_for_X_seconds(leftMotor,rightMotor,seconds) {
+	long i;
 	for (i=0;i<seconds;++i) { 
 		set_motors(leftMotor,rightMotor);
 		delay_ms(10);
@@ -225,24 +226,25 @@ void run_motor_for_X_seconds(motorSpeed,seconds) {
 	run_motors_for_X_seconds(motorSpeed,motorSpeed,seconds);
 }
 
-void turn_to_angle(long angle) {
-	int leftMotor = rotation;
-	int rightMotor = -rotation;
+void turn_to_angle(long angle, int leftMotor, int rightMotor) {
+	// int leftMotor = rotation;	completely wrong.
+	// int rightMotor = -rotation;	ditto.
 
 	long secondsToTurn = motor2angle(leftMotor,rightMotor); // Unit: Deg/sec
 	// MAGIC NUMBER!!! This line was called in the turn to X Axis
 	// secondsToTurn = (100*targetTheta)/secondsToTurn; // Unit: Deg/(Deg/sec)
 
 	// This was called in turn 90 degrees
-	secondsToTurn = (120*angle)/secondsToTurn; // Unit: Deg/(Deg/sec)
+	secondsToTurn = (100*angle)/secondsToTurn; // Unit: Deg/(Deg/sec)
+												//note: maybe 120 instead?
 
 	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  // Flip if negative turn time
-	debug_a(secondsToTurn, targetTheta/1000);
+	debug_a(secondsToTurn, angle);
 	run_motors_for_X_seconds(leftMotor,rightMotor,secondsToTurn);
 
-	if (xPos < 0) xPos = -xPos;
-	long xSeconds = (xPos*100)/motor2speed(rotation); // TODO: Explain units
-	run_motor_for_X_seconds(rotation,xSeconds);
+	// if (xPos < 0) xPos = -xPos;							// TODO: WTF IS THIS?
+	// long xSeconds = (xPos*100)/motor2speed(rotation); // TODO: Explain units
+	// run_motor_for_X_seconds(rotation,xSeconds);
 }
 
 int main() {
@@ -281,26 +283,25 @@ int main() {
 			delay_ms(200);
 		}
 
-		oldPosition = position;	// compute line positon //TODO* You're telling me this runs even while run!=0. That's terrible.
-		prevTime = millis();  //get the first time reading TODO: Is this necessary at this point?
-    /*TODO: Maybe make deltaTime a global that updates every time you call the fn clock_in();*/
-		// ^ I don't like that either.
-		read_line_sensors(sensors, IR_EMITTERS_ON);
-		update_bounds(sensors, minv, maxv);
-		position = line_position();
+		if (run == 1) {
+			
+			oldPosition = position;	// compute line positon 
+			prevTime = millis();  //get the first time reading TODO: Is this necessary at this point?
+			read_line_sensors(sensors, IR_EMITTERS_ON);
+			update_bounds(sensors, minv, maxv);
+			position = line_position();
 
-		// offset needs deltaTime. add to deltaTime the amount of time it took
-		// to go from the first time reading till now.
-		// we need to incorporate the past loop's run-time in addition to the
-		// part of the while loop traversed so far.
-		//    deltaTime = millis() - prevTime;
-		//    prevTime = millis();
+			// offset needs deltaTime. add to deltaTime the amount of time it took
+			// to go from the first time reading till now.
+			// we need to incorporate the past loop's run-time in addition to the
+			// part of the while loop traversed so far.
+			//    deltaTime = millis() - prevTime;
+			//    prevTime = millis();
 
-		derivative = position - oldPosition; // TODO*
-		integral = position + oldPosition; // tracks long-running position offset TODO*
-		offset = 	position/11 + derivative/30 + integral/50; //TODO *
-
-		if (run == 1) {	
+			derivative = position - oldPosition; // TODO*
+			integral = position + oldPosition; // tracks long-running position offset TODO*
+			offset = 	position/11 + derivative/30 + integral/50; //TODO *
+	
 			leftMotor = rotation + offset;
 			rightMotor = rotation - offset;
       // Guard against higher-than-acceptable values
@@ -314,10 +315,10 @@ int main() {
 
 			newTheta = oldTheta + marginalTheta; //TODO: Perhaps scale down to 0-360 or -180-+180 here
 
-			alpha = (newTheta+oldTheta)/2; //TODO: Verify. "Alpha = (oldTheta+MarginalTheta+oldTheta)/2"
+			alpha = (newTheta+oldTheta)/2; 
 
-			xPos += (long)(((Sin(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000000)); // LOVE MAGIC NUMBERS TODO: Units
-			yPos += (long)(((Cos(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000)); //TODO: How can these be different divisors?
+			xPos += (Sin(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000; // LOVE MAGIC NUMBERS TODO: Units
+			yPos += (Cos(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000; 
 
 			oldTheta = newTheta;
 
@@ -363,37 +364,41 @@ int main() {
 		rightMotor = rotation;
 	}
 
-	// (TODO) WHY IS THIS LINE HERE?
-	deltaTime = millis() - deltaTime;
 	clear();
-	print_long(targetTheta/1000);
+	print_long(targetTheta/1000);	// TODO: WTF? Why divide this by 1000 AGAIN? 
 
 	// The 180 degrees turn is now complete and it should be facing 100 //Um. 100 degrees?
 	// degrees to its starting position.
-	turn_to_angle(targetTheta); // (BUG) PASSED IS *1000 at the moment, turn to angle is reduced by 1000
+	turn_to_angle(targetTheta, leftMotor, rightMotor); 
 
 	// Go Y distance
 	// flip the yPos value if negative
 	if (yPos < 0) yPos = -yPos;
 
-	long ySeconds = (yPos*100)/motor2speed(rotation);
+//	long ySeconds = (yPos*100)/motor2speed(rotation);	agreed: try function 2 first.
 	// the 100 is to prevent the number from reduction to zero ^, yPos = 10/300 = 0
 
-	run_motor_for_X_seconds(rotation,ySeconds);
-	turn_to_angle(90); //Shouldn't it be turn 90degrees CW, aka turn to -90||+270
+//	run_motor_for_X_seconds(rotation,ySeconds);		see above.
 
+//	turn_to_angle(90); //Shouldn't it be turn 90degrees CW, aka turn to -90||+270
 	//travel distance of yPos, but flip the yPos value if negative
 	if (yPos < 0) yPos = -yPos;
-
+	
+	prevTime = millis();	// reset the deltaTime tracking for this loop.
+	deltaTime = 0;			// resetting deltaTime
 	while (yPos > 0) { //TODO: Factor  into fn: drive(dist, motor setting); -- This was factored, except 
 		// there are two algorithms that do the same thing, Basically this is the same as run_motor_for_X_seconds
 		// I have to say this algorithm would probably be more accurate assuming the X,Y is accurate just due to the
 		// fact it's reversing the count
-		yPos -= motor2speed(rotation)*deltaTime;
-		delay_ms(10);
-		deltaTime = millis()-deltaTime;
+		set_motors(rotation, rotation);
+		yPos += (Cos(180)*motor2speed(rotation)*deltaTime)/1000000;		// TODO: cosine is * 1000 and delaTime is in milliseconds.
+		delay_ms(10);													// divide by 1000*1000 = million.
+		deltaTime = millis()-prevTime;
+		prevTime = millis();
 	}
 	stop_motors(); //end fn "drive"
+	
+/*	one step at a time, gentlemen...
 
 	// turn by 90 degrees to the right or left.
 	targetTheta = 90;
@@ -428,6 +433,7 @@ int main() {
 	}//end drive
 
 	stop_motors();
+*/
 	return 0;
 }
 
