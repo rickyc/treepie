@@ -2,24 +2,26 @@
 	 3PI template code for NYU "Intro to Robotics" course. Yann LeCun, 02/2010.
 	 This program was modified from an example program from Pololu.
 */
-// Required for all 3pi programs
-#include <pololu/3pi.h>
-// Required for the use of program space for data
-#include <avr/pgmspace.h>
-// Alters the standard behavior of the 3pi_kinematics.h file
-#include "calibration.h"
+#include <pololu/3pi.h> // Required for all 3pi programs
+#include <avr/pgmspace.h> // Required for the use of program space for data
+#include "calibration.h" // Alters the standard behavior of the 3pi_kinematics.h file
 
 #define MIN_MOTOR_SPEED 0
 #define MAX_MOTOR_SPEED 255
+#define MILLION 1000000
+#define DEBUG 1
 
 // Global arrays to hold min and max sensor values for calibration
 unsigned int sensors[5]; // global array to hold sensor values
 unsigned int minv[5] = {65000, 65000, 65000, 65000, 65000};
 unsigned int maxv[5] = {0};
+
 // Global for robot base motor setting
 int rotation = 40;
+
 // Global to track whether the robot is to be running in the main loop
 int run = 0; // if =1 run the robot, if =0 stop
+
 // Globals that track position relative to the robot boot location (origin)
 long xPos = 0;
 long yPos = 0;
@@ -209,19 +211,20 @@ void debug_1(long l) { lcd_goto_xy(0,0); print_long(l); }
 void debug_2(long l) { lcd_goto_xy(0,1); print_long(l); }
 void debug_a(long l_one, long l_two) { clear(); debug_1(l_one); debug_2(l_two); }
 
-// unused run function. 
-void run_motors_for_X_seconds(leftMotor,rightMotor,seconds) {
-	long i;
-	for (i=0;i<seconds;++i) { 
+// running the motors can cause the 3pi to go straight or make turns
+void run_motors_for_X_seconds(leftMotor,rightMotor,secondsToTurn) {
+	int i;
+	for (i=0;i<secondsToTurn;++i) { 
 		set_motors(leftMotor,rightMotor);
 		delay_ms(10);
 	}
 	stop_motors();
 }
-// anoth3er unused wrapper function.
+
 void run_motor_for_X_seconds(motorSpeed,seconds) {
 	run_motors_for_X_seconds(motorSpeed,motorSpeed,seconds);
 }
+
 // This is the main function, where the code starts. All C programs
 // must have a main() function defined somewhere.
 int main () {  
@@ -236,8 +239,6 @@ int main () {
   long integral = 0;
   int rotation = 35;
   int i;
-  long xPos = 0;
-  long yPos = 0;
   long oldTheta = 0;
   long newTheta = 0;
   long marginalTheta = 0;
@@ -294,8 +295,9 @@ int main () {
 			
 			// alpha is 10^3 too big. as will be Sin & Cos. deltaTime is in terms of millisecs. 
 			// so, divide the resulting product by a million (1000*1000)
-      xPos += (long)(Sin(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000; 
-      yPos += (long)(Cos(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000;
+			long speedCalc = deltaTime*motor2speed((leftMotor+rightMotor)/2);
+      xPos += (long)(Sin(alpha/1000)*speedCalc)/MILLION; 
+      yPos += (long)(Cos(alpha/1000)*speedCalc)/MILLION;
 
       oldTheta = newTheta;
 
@@ -303,11 +305,13 @@ int main () {
     }
     
     // debug code
-    clear();
-    lcd_goto_xy(0,0);
-    print_long(marginalTheta);
-    lcd_goto_xy(1,1);
-    print_long(alpha/1000);
+		if (DEBUG) {
+			clear();
+			lcd_goto_xy(0,0);
+			print_long(marginalTheta);
+			lcd_goto_xy(1,1);
+			print_long(alpha/1000);
+		}
     
     delay_ms(40);	//delay the run loop to decrease the number of readings taken.
     deltaTime = millis() - prevTime;	// new deltaTime
@@ -319,9 +323,11 @@ int main () {
   rotation = 40;
 
 	// debugging.
-  clear();
-  lcd_goto_xy(0,0);
-  print("GO HOME");
+	if (DEBUG) {
+		clear();
+		lcd_goto_xy(0,0);
+		print("GO HOME");
+	}
 
   int targetTheta = oldTheta/1000; // Reduce tracking-mode theta to scale
 	long oldXPos = xPos;					// save these values for later.
@@ -354,18 +360,16 @@ int main () {
   if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //Flip if negative turn time
 
 	// debug code.
-	clear();
-  print_long(secondsToTurn);
-  lcd_goto_xy(1,1);
-  print_long(targetTheta);
+	if (DEBUG) {
+		clear();
+		print_long(secondsToTurn);
+		lcd_goto_xy(1,1);
+		print_long(targetTheta);
+	}
 
  	// a loop that takes 10ms to process each centisecond. Ergo, we
  	// turn the robot by this many milliseconds.
-  for(i = 0; i < secondsToTurn; ++i) {
-    set_motors(leftMotor, rightMotor);
-    delay_ms(10);
-  }
-  stop_motors();
+	run_motors_for_X_seconds(leftMotor,rightMotor,secondsToTurn);
   
 	prevTime = millis();	// reset the deltaTime tracking for this loop.
 	deltaTime = 0;			// resetting deltaTime
@@ -401,20 +405,18 @@ int main () {
   if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //Flip if negative turn time
 
 	// debugging.
-	clear();
-  print_long(secondsToTurn);
-  lcd_goto_xy(1,1);
-  print_long(targetTheta);
+	if (DEBUG) {
+		clear();
+		print_long(secondsToTurn);
+		lcd_goto_xy(1,1);
+		print_long(targetTheta);
+	}
 
   // do the rotation. same code as above for the yPos.
-  for(i = 0; i < secondsToTurn; ++i) {
-    set_motors(leftMotor, rightMotor);
-    delay_ms(10);
-  }
-  
+	run_motors_for_X_seconds(leftMotor,rightMotor,secondsToTurn);
+
 	if (xPos < 0) xPos = -xPos;		// flip x if it's negative.	
 	  
-  stop_motors();
 	prevTime = millis();	// reset the deltaTime tracking for this loop.
 	deltaTime = 0;			// resetting deltaTime
 	while (xPos > 0) { 	// this time, decrement X till we're done.
