@@ -34,7 +34,7 @@ const char timer_tick[] PROGMEM = "!v8>>c32";
 
 // Introductory messages. The "PROGMEM" identifier
 // causes the data to go into program space.
-const char robotName[] PROGMEM = "MAGIC PONY";
+const char robotName[] PROGMEM = "PONY";
 
 char display_characters[9] = { ' ', 0, 1, 2, 3, 4, 5, 6, 255 };
 
@@ -134,12 +134,8 @@ int off_track(center_only) {
 	return 1; // Fell through the guard, thus off the line
 }
 
-// (TODO) 4 Alex Lobasian. Yah, know how you put a space after a period. Like this?
-// So you put a space after a comment -.-
-//Not like This
-//---- FYI same practice in ruby (DELETE previous four lines after you are done)
-//Calculates the time taken to travel a set distance
-//Currently assumed to be 20cm.
+// Calculates the time taken to travel a set distance
+// Currently assumed to be 20cm.
 int two_line_time(speed){
 	idle_until_button_pressed(BUTTON_A);
 	set_motors(speed, speed);
@@ -151,7 +147,7 @@ int two_line_time(speed){
 		read_line_sensors(sensors, IR_EMITTERS_ON);
 		if(off_track(0) && !first_mark_time){
 			first_mark_time = millis();
-		} else if(off_track(0) && !second_mark_time && (millis()-first_mark_time > 200)) {
+		} else if(off_track(0) && !second_mark_time && (millis()-first_mark_time > 2000)) {
 			second_mark_time = millis();
 		}
 		if (second_mark_time){
@@ -213,221 +209,224 @@ void debug_1(long l) { lcd_goto_xy(0,0); print_long(l); }
 void debug_2(long l) { lcd_goto_xy(0,1); print_long(l); }
 void debug_a(long l_one, long l_two) { clear(); debug_1(l_one); debug_2(l_two); }
 
+// unused run function. 
 void run_motors_for_X_seconds(leftMotor,rightMotor,seconds) {
+	long i;
 	for (i=0;i<seconds;++i) { 
 		set_motors(leftMotor,rightMotor);
 		delay_ms(10);
 	}
 	stop_motors();
 }
-
+// anoth3er unused wrapper function.
 void run_motor_for_X_seconds(motorSpeed,seconds) {
 	run_motors_for_X_seconds(motorSpeed,motorSpeed,seconds);
 }
-
-void turn_to_angle(long angle) {
-	int leftMotor = rotation;
-	int rightMotor = -rotation;
-
-	long secondsToTurn = motor2angle(leftMotor,rightMotor); // Unit: Deg/sec
-	// MAGIC NUMBER!!! This line was called in the turn to X Axis
-	// secondsToTurn = (100*targetTheta)/secondsToTurn; // Unit: Deg/(Deg/sec)
-
-	// This was called in turn 90 degrees
-	secondsToTurn = (120*angle)/secondsToTurn; // Unit: Deg/(Deg/sec)
-
-	if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  // Flip if negative turn time
-	debug_a(secondsToTurn, targetTheta/1000);
-	run_motors_for_X_seconds(leftMotor,rightMotor,secondsToTurn);
-
-	if (xPos < 0) xPos = -xPos;
-	long xSeconds = (xPos*100)/motor2speed(rotation); // TODO: Explain units
-	run_motor_for_X_seconds(rotation,xSeconds);
-}
-
-int main() {
-	// line position relative to center
-	long position = 0;
-	long oldPosition = 0;
-	long derivative = 0;
-	int offset = 0;
-	int leftMotor = 0;
-	int rightMotor = 0;
-	long integral = 0;
-	long i;
-	long oldTheta = 0;
-	long newTheta = 0;
-	long marginalTheta = 0;
-	long alpha = 0;
-	unsigned long prevTime = 0;
-	unsigned long deltaTime = 0;
-
-	// set up the 3pi, and wait for B button to be pressed
-	initialize();
-	idle_until_button_pressed(BUTTON_B);
-	read_line_sensors(sensors,IR_EMITTERS_ON);
-	dance(); // sensor calibration
-
-	// Alex's Calibration Madness
-	// speed_calibrate(25,50); // TODO: Turn on when its actually working
-	idle_until_button_pressed(BUTTON_B);
-
-	do {
-		// (TODO) remove comment on next iteration, this does work, basically if button is hit
-		// the robot stops running
-		if(button_is_pressed(BUTTON_B)) { 
-			play_from_program_space(beep_button_middle); 
-			toggleRun();
-			delay_ms(200);
-		}
-
-		oldPosition = position;	// compute line positon //TODO* You're telling me this runs even while run!=0. That's terrible.
-		prevTime = millis();  //get the first time reading TODO: Is this necessary at this point?
-    /*TODO: Maybe make deltaTime a global that updates every time you call the fn clock_in();*/
-		// ^ I don't like that either.
-		read_line_sensors(sensors, IR_EMITTERS_ON);
-		update_bounds(sensors, minv, maxv);
-		position = line_position();
-
-		// offset needs deltaTime. add to deltaTime the amount of time it took
-		// to go from the first time reading till now.
-		// we need to incorporate the past loop's run-time in addition to the
-		// part of the while loop traversed so far.
-		//    deltaTime = millis() - prevTime;
-		//    prevTime = millis();
-
-		derivative = position - oldPosition; // TODO*
-		integral = position + oldPosition; // tracks long-running position offset TODO*
-		offset = 	position/11 + derivative/30 + integral/50; //TODO *
-
+// This is the main function, where the code starts. All C programs
+// must have a main() function defined somewhere.
+int main () {  
+  
+  // line position relative to center
+  long position = 0;
+  long oldPosition = 0;
+  long derivative = 0;
+  int offset = 0;
+  int leftMotor = 0;
+  int rightMotor = 0;
+  long integral = 0;
+  int rotation = 35;
+  int i;
+  long xPos = 0;
+  long yPos = 0;
+  long oldTheta = 0;
+  long newTheta = 0;
+  long marginalTheta = 0;
+  long alpha = 0;
+  unsigned long prevTime = 0;
+  unsigned long deltaTime = 0;
+  
+  // set up the 3pi, and wait for B button to be pressed
+  initialize();
+  idle_until_button_pressed(BUTTON_B);
+  read_line_sensors(sensors,IR_EMITTERS_ON);
+  dance(); // sensor calibration
+  // speed_calibrate(30,60); // call this line to auto-calibrate the robot.
+  
+  do {
+    if (button_is_pressed(BUTTON_B)) {
+      play_from_program_space(beep_button_middle);
+      toggleRun();
+      delay_ms(200);
+    }
+    
+		  oldPosition = position;	// compute line positon
+		  prevTime = millis();  //get the first time reading
+		  read_line_sensors(sensors, IR_EMITTERS_ON);
+		  update_bounds(sensors, minv, maxv);
+		  position = line_position();		//get the line position.
+		
 		if (run == 1) {	
-			leftMotor = rotation + offset;
-			rightMotor = rotation - offset;
-      // Guard against higher-than-acceptable values
-			leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
-			rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
-			// Guard against lower-than-acceptable values
-			leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
-			rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
+		  
+		  // position = -1000 to 1000
+		  derivative = position - oldPosition;
+		  integral = position + oldPosition;
+		  offset = 	position/20 + derivative/25 + integral/35;
+    
+      leftMotor = rotation + offset;
+      rightMotor = rotation - offset;
 
-			marginalTheta = (long)( motor2angle(leftMotor, rightMotor) * deltaTime); //TODO: Units
+			// truncation on positives.
+      leftMotor = (leftMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : leftMotor;
+      rightMotor = (rightMotor > MAX_MOTOR_SPEED) ? MAX_MOTOR_SPEED : rightMotor;
 
-			newTheta = oldTheta + marginalTheta; //TODO: Perhaps scale down to 0-360 or -180-+180 here
+      // truncation on negatives for safety
+      leftMotor = (leftMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : leftMotor;
+      rightMotor = (rightMotor < MIN_MOTOR_SPEED) ? MIN_MOTOR_SPEED : rightMotor;
 
-			alpha = (newTheta+oldTheta)/2; //TODO: Verify. "Alpha = (oldTheta+MarginalTheta+oldTheta)/2"
+			//get the new marginal theta calculation.
+      marginalTheta = (long)( motor2angle(leftMotor, rightMotor) * deltaTime);
+			
+			// add it to the old theta calculation to get the new theta
+      newTheta = oldTheta + marginalTheta;
+			
+			// avg the two theta calculations to get the alpha angle.
+      alpha = (oldTheta + newTheta)/2;
+			
+			// alpha is 10^3 too big. as will be Sin & Cos. deltaTime is in terms of millisecs. 
+			// so, divide the resulting product by a million (1000*1000)
+      xPos += (long)(Sin(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000; 
+      yPos += (long)(Cos(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000;
 
-			xPos += (long)(((Sin(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000000)); // LOVE MAGIC NUMBERS TODO: Units
-			yPos += (long)(((Cos(alpha/1000)*deltaTime*motor2speed((leftMotor+rightMotor)/2))/1000000)); //TODO: How can these be different divisors?
+      oldTheta = newTheta;
 
-			oldTheta = newTheta;
+      set_motors(leftMotor, rightMotor);
+    }
+    
+    // debug code
+    clear();
+    lcd_goto_xy(0,0);
+    print_long(marginalTheta);
+    lcd_goto_xy(1,1);
+    print_long(alpha/1000);
+    
+    delay_ms(40);	//delay the run loop to decrease the number of readings taken.
+    deltaTime = millis() - prevTime;	// new deltaTime
+    
+  } while(!off_track(0));
 
-			set_motors(leftMotor, rightMotor);
-		}
+  // Stop the motors, set the base speed to 40 and attempt to go home.
+  stop_motors();
+  rotation = 40;
 
-		// debug code
-		debug_a(xPos, yPos);
-		delay_ms(10);
+	// debugging.
+  clear();
+  lcd_goto_xy(0,0);
+  print("GO HOME");
 
-		deltaTime = millis() - prevTime; // new deltaTime /*TODO: This happens so much it's not even funny. Lock it down.*/
-		// ^ I don't like this either
-
-	} while(!off_track(0));
-
-	// Stop the motors, set the base speed to 40 and attempt to go home.
-	stop_motors();
-	rotation = 40;
+  int targetTheta = oldTheta/1000; // Reduce tracking-mode theta to scale
+	long oldXPos = xPos;					// save these values for later.
+	long oldYPos = yPos;
 	
+	// figure out which direction to turn in to make the robot point
+	// 180 degrees from its initial starting position. it is in one of four
+	// quadrants based upon the last theta calculation.
+  if (targetTheta > 0 && targetTheta <= 180) {
+    targetTheta = 180 - targetTheta;
+    leftMotor = rotation; //Clockwise
+    rightMotor = -rotation;
+  } else if (targetTheta < -180) {
+    targetTheta = targetTheta + 360;
+    leftMotor = rotation; //Clockwise
+    rightMotor = -rotation;
+  } else if (targetTheta > 180) {
+    targetTheta = 360 - targetTheta;
+    leftMotor = -rotation; //Counter-clockwise
+    rightMotor = rotation;
+  } else { //Thus tTheta is between -180 and 0
+    targetTheta = 180 + targetTheta;
+    leftMotor = -rotation; //Counter-clockwise
+    rightMotor = rotation;
+  }
+ 
+  // turn the robot by this many centiseconds
+  long secondsToTurn = motor2angle(leftMotor,rightMotor); //Unit: Deg/sec
+  secondsToTurn = (110*targetTheta)/secondsToTurn; //Unit: Deg/(Deg/sec)
+  if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //Flip if negative turn time
+
+	// debug code.
 	clear();
-	lcd_goto_xy(0,0);
-	print("I am lost"); // aka go home
+  print_long(secondsToTurn);
+  lcd_goto_xy(1,1);
+  print_long(targetTheta);
 
-	int targetTheta = oldTheta/1000; // Reduce tracking-mode theta to scale
-
-	// if it's a positive angle, subtract it from 180 and then make the right motor neg 
-	// and the left motor positive to spin clockwise.
-	if (targetTheta > 0 && targetTheta <= 180) { //TODO: Clean up the logic/verify truth
-		targetTheta = 180 - targetTheta;
-		leftMotor = rotation; //Clockwise
-		rightMotor = -rotation;
-	} else if (targetTheta < -180) {
-		targetTheta = targetTheta + 360;
-		leftMotor = rotation; //Clockwise
-		rightMotor = -rotation;
-	} else if (targetTheta > 180) {
-		targetTheta = 360 - targetTheta;
-		leftMotor = -rotation; //Counter-clockwise
-		rightMotor = rotation;
-	} else { //Thus tTheta is between -180 and 0
-		targetTheta = 180 + targetTheta;
-		leftMotor = -rotation; //Counter-clockwise
-		rightMotor = rotation;
+ 	// a loop that takes 10ms to process each centisecond. Ergo, we
+ 	// turn the robot by this many milliseconds.
+  for(i = 0; i < secondsToTurn; ++i) {
+    set_motors(leftMotor, rightMotor);
+    delay_ms(10);
+  }
+  stop_motors();
+  
+	prevTime = millis();	// reset the deltaTime tracking for this loop.
+	deltaTime = 0;			// resetting deltaTime
+	while (yPos > 0) { 
+		set_motors(rotation, rotation);
+		yPos -= motor2speed(rotation)*deltaTime/1000;		//deltaTime is in terms of seconds.
+		delay_ms(100);									// slow the loop down some.													
+		deltaTime = millis()-prevTime;		
+		prevTime = millis();						// reset the previous time value
 	}
+	stop_motors(); 
 
-	// (TODO) WHY IS THIS LINE HERE?
-	deltaTime = millis() - deltaTime;
+	// done turning and traversing the yDistance.
+  // turn by 90 degrees to the right or left.
+  targetTheta = 90;
+
+  // turn robot to the proper angle based upon where it began.
+  // this is determined by what quadrant it was in when it detected the 
+  // end of the line. the values of the x and y coordinates tell us which
+  // way to turn to get back to the origin after hitting the x-axis 
+  if ((oldXPos > 0 && oldYPos > 0) || (oldXPos < 0 && oldYPos < 0)) {
+   	leftMotor = rotation;
+   	rightMotor = -rotation;		// q1 && q3
+   } else {
+  	leftMotor = -rotation;		// q2 & q4
+  	rightMotor = rotation;
+  }
+
+	// re-calculate the time to rotate again, this time to point to the origin.
+  secondsToTurn = motor2angle(leftMotor,rightMotor); //Unit: Deg/sec
+  secondsToTurn = (110*targetTheta)/secondsToTurn; //Unit: Deg/(Deg/sec)
+  
+  if (secondsToTurn < 0) secondsToTurn = -secondsToTurn;  //Flip if negative turn time
+
+	// debugging.
 	clear();
-	print_long(targetTheta/1000);
+  print_long(secondsToTurn);
+  lcd_goto_xy(1,1);
+  print_long(targetTheta);
 
-	// The 180 degrees turn is now complete and it should be facing 100 //Um. 100 degrees?
-	// degrees to its starting position.
-	turn_to_angle(targetTheta); // (BUG) PASSED IS *1000 at the moment, turn to angle is reduced by 1000
-
-	// Go Y distance
-	// flip the yPos value if negative
-	if (yPos < 0) yPos = -yPos;
-
-	long ySeconds = (yPos*100)/motor2speed(rotation);
-	// the 100 is to prevent the number from reduction to zero ^, yPos = 10/300 = 0
-
-	run_motor_for_X_seconds(rotation,ySeconds);
-	turn_to_angle(90); //Shouldn't it be turn 90degrees CW, aka turn to -90||+270
-
-	//travel distance of yPos, but flip the yPos value if negative
-	if (yPos < 0) yPos = -yPos;
-
-	while (yPos > 0) { //TODO: Factor  into fn: drive(dist, motor setting); -- This was factored, except 
-		// there are two algorithms that do the same thing, Basically this is the same as run_motor_for_X_seconds
-		// I have to say this algorithm would probably be more accurate assuming the X,Y is accurate just due to the
-		// fact it's reversing the count
-		yPos -= motor2speed(rotation)*deltaTime;
-		delay_ms(10);
-		deltaTime = millis()-deltaTime;
+  // do the rotation. same code as above for the yPos.
+  for(i = 0; i < secondsToTurn; ++i) {
+    set_motors(leftMotor, rightMotor);
+    delay_ms(10);
+  }
+  
+	if (xPos < 0) xPos = -xPos;		// flip x if it's negative.	
+	  
+  stop_motors();
+	prevTime = millis();	// reset the deltaTime tracking for this loop.
+	deltaTime = 0;			// resetting deltaTime
+	while (xPos > 0) { 	// this time, decrement X till we're done.
+		set_motors(rotation, rotation);
+		xPos -= motor2speed(rotation)*deltaTime/1000;	
+		delay_ms(100);		// delay to slow the loop down.
+		deltaTime = millis()-prevTime;
+		prevTime = millis();
 	}
-	stop_motors(); //end fn "drive"
-
-	// turn by 90 degrees to the right or left.
-	targetTheta = 90;
-	// (BUG) There is no turn here, the theta was just reset to 90 and uses
-	// a different algorithm to do the turn
-
-	// turn robot to the proper angle based upon where it began. 
-	// (TODO) questa e` una diversi funzione per andare a casa. (That's definitely incorrect italian)
-	// farsi
-	if (oldXPos > 0 && oldYPos > 0) set_motors(rotation, 0); //Quadrant 1
-    else if (oldXPos < 0 && oldYPos > 0) set_motors(0, rotation); //2
-    else if (oldXPos < 0 && oldYPos < 0) set_motors(rotation, 0); //3
-	else set_motors(0, rotation); //4
-
-	deltaTime = millis(); //Definitely incorrect (TODO)
-	while (targetTheta > 0) {
-		targetTheta -= motor2speed(10)*deltaTime; //TODO: change the motor speed in here, also factor
-		delay_ms(10);
-		deltaTime = millis() - deltaTime;
-	}
-	stop_motors();
+	stop_motors(); 
 	
-  // flip xPos (TODO) bound check unnecessary now? I mean might as well leave it there
-	if (xPos < 0) xPos = -xPos;
-	// drive(xPos, rotation)
-	set_motors(rotation,rotation);
-	deltaTime = millis();
-	while (xPos > 0) {
-		xPos -= motor2speed(rotation) * deltaTime;
-		delay_ms(10);
-		deltaTime = millis() - deltaTime;
-	}//end drive
-
-	stop_motors();
-	return 0;
+	// DONE! YAYYYYYYYYYYY! :)
+  return 0;
 }
 

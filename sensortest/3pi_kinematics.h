@@ -7,12 +7,10 @@ long c2 = 2;
 long c9 = 9;
 long c10 = 10;
 long c90 = 90;
-long c100 = 100;
 long c180 = 180;
+long c270 = 270;
 long c360 = 360;
-long c1000 = 1000;
 long c5152 = 5152;
-long cmillion = 1000000;
 
 // width of the robot in 1/10 of a millimiter.
 // (distance between the two weels)
