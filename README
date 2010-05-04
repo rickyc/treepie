@@ -1,6 +1,0 @@
-== TreePie
-Assignment #1 => Line Follower
-3PI Robot: Line following with proportional–integral–derivative controller. The robot follows a line to the end point.
-
-Assignment #2 => Dead Reckoning
-3PI Robot: Dead reckoning and driving home. The robot follows a line, detects the end of the line, and return to the starting point.
